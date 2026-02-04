@@ -1,41 +1,40 @@
 const express = require("express");
-const router = express.Router();
-
 const {
   createComplaint,
   getAllComplaints,
-  getMyComplaints,
+  getComplaintsByUser,
   updateComplaintStatus
 } = require("../controllers/complaint.controller");
+const { verifyToken, isAdmin } = require("../middleware/auth.middleware");
 
-const { protect, adminOnly } = require("../middleware/auth.middleware");
+const router = express.Router();
 
 /**
  * @route   POST /api/complaints
  * @desc    Create a new complaint
  * @access  Private (Citizen)
  */
-router.post("/", protect, createComplaint);
+router.post("/", verifyToken, createComplaint);
 
 /**
  * @route   GET /api/complaints/my
  * @desc    Get complaints created by logged-in user
  * @access  Private (Citizen)
  */
-router.get("/my", protect, getMyComplaints);
+router.get("/my", verifyToken, getComplaintsByUser);
 
 /**
  * @route   GET /api/complaints
  * @desc    Get all complaints
  * @access  Private (Admin)
  */
-router.get("/", protect, adminOnly, getAllComplaints);
+router.get("/", verifyToken, isAdmin, getAllComplaints);
 
 /**
  * @route   PATCH /api/complaints/:id/status
  * @desc    Update complaint status
  * @access  Private (Admin)
  */
-router.patch("/:id/status", protect, adminOnly, updateComplaintStatus);
+router.patch("/:id/status", verifyToken, isAdmin, updateComplaintStatus);
 
 module.exports = router;
