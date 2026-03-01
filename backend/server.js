@@ -44,6 +44,77 @@ app.use(cors(corsOptions));
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Welcome to CivicLens API', 
+    version: '1.0.0',
+    docs: '/api/docs' // placeholder for future docs
+  });
+});
+
+// API Documentation endpoint
+app.get('/api/docs', (req, res) => {
+  res.json({
+    title: 'CivicLens API Documentation',
+    version: '1.0.0',
+    baseUrl: 'http://localhost:5000',
+    endpoints: {
+      auth: {
+        register: {
+          method: 'POST',
+          path: '/api/auth/register',
+          description: 'Register a new user',
+          body: { name: 'string', email: 'string', password: 'string' }
+        },
+        login: {
+          method: 'POST',
+          path: '/api/auth/login',
+          description: 'Login and get JWT token',
+          body: { email: 'string', password: 'string' }
+        }
+      },
+      complaints: {
+        create: {
+          method: 'POST',
+          path: '/api/complaints',
+          description: 'Create a new complaint (Citizen only)',
+          auth: 'Bearer token required',
+          body: { title: 'string', description: 'string', category: 'string' }
+        },
+        getMyComplaints: {
+          method: 'GET',
+          path: '/api/complaints/my',
+          description: 'Get complaints created by logged-in user',
+          auth: 'Bearer token required'
+        },
+        getAllComplaints: {
+          method: 'GET',
+          path: '/api/complaints',
+          description: 'Get all complaints (Admin only)',
+          auth: 'Bearer token required'
+        },
+        updateStatus: {
+          method: 'PATCH',
+          path: '/api/complaints/:id/status',
+          description: 'Update complaint status (Admin only)',
+          auth: 'Bearer token required',
+          body: { status: 'string' }
+        }
+      },
+      health: {
+        check: {
+          method: 'GET',
+          path: '/health',
+          description: 'Server health check'
+        }
+      }
+    },
+    categories: ['Garbage', 'Road', 'Street Light', 'Water', 'Other'],
+    statuses: ['Pending', 'In Progress', 'Resolved']
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
