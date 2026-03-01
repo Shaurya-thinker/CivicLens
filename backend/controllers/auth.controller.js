@@ -98,8 +98,8 @@ exports.login = async (req, res) => {
       return res.status(500).json({ message: "Server configuration error" });
     }
     
-    // Sanitize email with additional type safety
-    const sanitizedEmail = sanitizeForMongo(email);
+    // Sanitize email only (password must remain unchanged for bcrypt comparison)
+    const sanitizedEmail = email.toString().toLowerCase().trim();
     
     const user = await User.findOne({ email: sanitizedEmail });
     if (!user) {
