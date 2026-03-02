@@ -70,8 +70,10 @@ export default function AdminDashboard() {
     return (
       <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem', animation: 'pulse 2s infinite' }}>⏳</div>
-          <p style={{ fontSize: 'var(--font-size-lg)', color: 'var(--neutral-medium)' }}>Loading complaints...</p>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-main)' }}>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="8"/>
+          </svg>
+          <p style={{ fontSize: 'var(--font-size-lg)', color: 'var(--neutral-medium)', marginTop: '1rem' }}>Loading complaints...</p>
         </div>
       </div>
     );
@@ -81,7 +83,11 @@ export default function AdminDashboard() {
     return (
       <div className="container">
         <div className="error-message" style={{ fontSize: 'var(--font-size-base)' }}>
-          ❌ {error}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+            <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          {error}
         </div>
       </div>
     );
@@ -90,13 +96,20 @@ export default function AdminDashboard() {
   return (
     <div className="container">
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <h1>📊 Admin Dashboard</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--primary-main)' }}>
+            <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="14" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="14" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="3" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <h1 style={{ margin: 0 }}>Admin Dashboard</h1>
+        </div>
         <p style={{ color: 'var(--neutral-medium)', fontSize: 'var(--font-size-base)' }}>
           Manage and review all citizen complaints
         </p>
       </div>
 
-      {/* Stats Grid */}
       <div className="stats-grid">
         <div className="stat-card">
           <h3>Total Complaints</h3>
@@ -116,10 +129,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Filters */}
       <Filters onFilter={handleFilter} />
 
-      {/* Complaints Table */}
       {filteredComplaints.length === 0 ? (
         <div style={{
           background: 'var(--white)',
@@ -128,7 +139,9 @@ export default function AdminDashboard() {
           textAlign: 'center',
           color: 'var(--neutral-medium)'
         }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📭</div>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 1rem', color: 'var(--neutral-light)' }}>
+            <path d="M22 12H18L15 21L9 3L6 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
           <p style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500 }}>No complaints found</p>
           <p>Try adjusting your filters</p>
         </div>
@@ -173,9 +186,9 @@ export default function AdminDashboard() {
                       onChange={(e) => handleStatusChange(complaint._id, e.target.value)}
                       className="status-select"
                     >
-                      <option value="Pending">⏳ Pending</option>
-                      <option value="In Progress">⚙️ In Progress</option>
-                      <option value="Resolved">✅ Resolved</option>
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
                     </select>
                   </td>
                 </tr>
@@ -185,7 +198,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Summary */}
       <div style={{
         marginTop: 'var(--spacing-2xl)',
         padding: 'var(--spacing-lg)',
@@ -194,7 +206,7 @@ export default function AdminDashboard() {
         textAlign: 'center',
         color: 'var(--neutral-medium)'
       }}>
-        <p><strong style={{ color: 'var(--neutral-dark)' }}>📈 Summary:</strong> {stats.total} total complaints with {stats.resolved} resolved and {stats.pending} pending</p>
+        <p><strong style={{ color: 'var(--neutral-dark)' }}>Summary:</strong> {stats.total} total complaints with {stats.resolved} resolved and {stats.pending} pending</p>
       </div>
     </div>
   );

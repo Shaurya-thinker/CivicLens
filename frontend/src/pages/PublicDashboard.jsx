@@ -36,8 +36,10 @@ export default function PublicDashboard() {
     return (
       <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem', animation: 'pulse 2s infinite' }}>⏳</div>
-          <p style={{ fontSize: 'var(--font-size-lg)', color: 'var(--neutral-medium)' }}>Loading complaints...</p>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-main)' }}>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="8"/>
+          </svg>
+          <p style={{ fontSize: 'var(--font-size-lg)', color: 'var(--neutral-medium)', marginTop: '1rem' }}>Loading complaints...</p>
         </div>
       </div>
     );
@@ -46,15 +48,29 @@ export default function PublicDashboard() {
   return (
     <div className="container">
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <h1>📋 Public Complaint Dashboard</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--primary-main)' }}>
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M10 9H9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <h1 style={{ margin: 0 }}>Public Complaint Dashboard</h1>
+        </div>
         <p style={{ color: 'var(--neutral-medium)', fontSize: 'var(--font-size-base)' }}>
           View all submitted complaints and their resolution status
         </p>
       </div>
 
-      {error && <div className="error-message">❌ {error}</div>}
+      {error && <div className="error-message">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+        {error}
+      </div>}
 
-      {/* Statistics Cards */}
       <div className="stats-grid">
         <div className="stat-card">
           <h3>Total Complaints</h3>
@@ -86,17 +102,19 @@ export default function PublicDashboard() {
         </div>
       </div>
 
-      {/* Recent Complaints */}
       <div style={{ marginTop: 'var(--spacing-2xl)', marginBottom: 'var(--spacing-lg)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
           <h2 style={{ margin: 0 }}>Recent Complaints</h2>
           <span style={{
-            backgroundColor: 'var(--primary-light)',
+            background: 'var(--primary-gradient)',
             color: 'white',
-            padding: '0.25rem 0.75rem',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
+            padding: '0.35rem 0.85rem',
+            borderRadius: 'var(--radius-lg)',
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: 700,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
             minWidth: 'fit-content'
           }}>
             {complaints.length} Total
@@ -113,7 +131,9 @@ export default function PublicDashboard() {
           color: 'var(--neutral-medium)',
           border: '1px solid var(--neutral-lighter)'
         }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📭</div>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 1rem', color: 'var(--neutral-light)' }}>
+            <path d="M22 12H18L15 21L9 3L6 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
           <p style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500 }}>No complaints yet</p>
           <p style={{ marginTop: 'var(--spacing-sm)' }}>Start by raising your first complaint</p>
         </div>
@@ -133,7 +153,13 @@ export default function PublicDashboard() {
                   {complaint.category}
                 </span>
                 <span className="date">
-                  📅 {new Date(complaint.createdAt).toLocaleDateString(undefined, {
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.25rem', verticalAlign: 'middle' }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {new Date(complaint.createdAt).toLocaleDateString(undefined, {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric'
@@ -146,9 +172,16 @@ export default function PublicDashboard() {
                     borderRadius: 'var(--radius-sm)',
                     fontSize: 'var(--font-size-sm)',
                     color: 'var(--neutral-medium)',
-                    fontWeight: 500
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
                   }}>
-                    👤 {complaint.createdBy.name}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {complaint.createdBy.name}
                   </span>
                 )}
               </div>

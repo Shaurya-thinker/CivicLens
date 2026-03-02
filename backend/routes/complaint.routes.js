@@ -26,9 +26,9 @@ router.get("/my", verifyToken, getComplaintsByUser);
 /**
  * @route   GET /api/complaints
  * @desc    Get all complaints
- * @access  Private (Admin)
+ * @access  Public
  */
-router.get("/", verifyToken, isAdmin, getAllComplaints);
+router.get("/", getAllComplaints);
 
 /**
  * @route   PATCH /api/complaints/:id/status
