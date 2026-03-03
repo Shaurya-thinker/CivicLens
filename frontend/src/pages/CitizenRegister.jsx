@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../services/api";
 
@@ -15,6 +15,43 @@ function CitizenRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [validFields, setValidFields] = useState({});
+  const firstInvalidRef = useRef(null);
+
+  const passwordRequirements = [
+    { test: (p) => p.length >= 6, label: 'At least 6 characters' },
+    { test: (p) => /[A-Z]/.test(p), label: 'One uppercase letter' },
+    { test: (p) => /[a-z]/.test(p), label: 'One lowercase letter' },
+    { test: (p) => /[0-9]/.test(p), label: 'One number' }
+  ];
+
+  const getPasswordStrength = (password) => {
+    const passed = passwordRequirements.filter(req => req.test(password)).length;
+    return (passed / passwordRequirements.length) * 100;
+  };
+
+  const getStrengthColor = (strength) => {
+    if (strength < 25) return 'var(--error)';
+    if (strength < 50) return 'var(--warning)';
+    if (strength < 75) return 'var(--status-progress)';
+    return 'var(--success)';
+  };
+
+  const getStrengthLabel = (strength) => {
+    if (strength < 25) return 'Weak';
+    if (strength < 50) return 'Fair';
+    if (strength < 75) return 'Good';
+    return 'Strong';
+  };
+
+  useEffect(() => {
+    setValidFields({
+      name: form.name.trim().length >= 2,
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email),
+      password: getPasswordStrength(form.password) === 100,
+      confirmPassword: form.password && form.password === form.confirmPassword
+    });
+  }, [form]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -26,11 +63,14 @@ function CitizenRegister() {
     setError("");
 
     if (form.password !== form.confirmPassword) {
-      return setError("Passwords do not match");
+      setError("Passwords do not match");
+      return;
     }
 
-    if (form.password.length < 6) {
-      return setError("Password must be at least 6 characters");
+    if (getPasswordStrength(form.password) < 100) {
+      setError("Please meet all password requirements");
+      firstInvalidRef.current?.focus();
+      return;
     }
 
     setLoading(true);
@@ -51,8 +91,14 @@ function CitizenRegister() {
     }
   };
 
+  const isFormValid = Object.values(validFields).every(Boolean);
+  const passwordStrength = getPasswordStrength(form.password);
+
   return (
-    <div className="auth-container">
+    <div className="auth-container" style={{
+      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+      animation: 'fadeIn 0.5s ease-out'
+    }}>
       <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ 
@@ -64,7 +110,8 @@ function CitizenRegister() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)'
+            boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
+            animation: success ? 'pulseGlow 0.6s ease-out' : 'none'
           }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: 'white' }}>
               <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -80,7 +127,7 @@ function CitizenRegister() {
         </div>
 
         {error && (
-          <div className="error-message">
+          <div className="error-message" style={{ animation: 'slideDown 0.3s ease-out' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
               <path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -91,65 +138,60 @@ function CitizenRegister() {
         )}
 
         {success && (
-          <div className="success-message">
+          <div className="success-message" style={{ animation: 'slideDown 0.3s ease-out' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
               <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Registration successful! Redirecting to login...
+            Registration successful! Redirecting...
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="name">Full Name</label>
-            <div style={{ position: 'relative' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--neutral-medium)' }}>
-                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="John Doe"
-                onChange={handleChange}
-                value={form.name}
-                required
-                style={{ paddingLeft: '40px' }}
-                disabled={loading}
-              />
-            </div>
+            <input
+              ref={!validFields.name && form.name ? firstInvalidRef : null}
+              id="name"
+              name="name"
+              type="text"
+              placeholder="John Doe"
+              onChange={handleChange}
+              value={form.name}
+              required
+              autoComplete="name"
+              style={{ 
+                borderColor: validFields.name ? 'var(--success)' : undefined,
+                transition: 'all 0.3s ease'
+              }}
+              disabled={loading}
+            />
           </div>
 
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--neutral-medium)' }}>
-                <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M22 6L12 13L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                onChange={handleChange}
-                value={form.email}
-                required
-                style={{ paddingLeft: '40px' }}
-                disabled={loading}
-              />
-            </div>
+            <input
+              ref={!validFields.email && form.email ? firstInvalidRef : null}
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              onChange={handleChange}
+              value={form.email}
+              required
+              autoComplete="email"
+              style={{ 
+                borderColor: validFields.email ? 'var(--success)' : undefined,
+                transition: 'all 0.3s ease'
+              }}
+              disabled={loading}
+            />
           </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <div style={{ position: 'relative' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--neutral-medium)' }}>
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
               <input
+                ref={!validFields.password && form.password ? firstInvalidRef : null}
                 id="password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
@@ -157,7 +199,12 @@ function CitizenRegister() {
                 onChange={handleChange}
                 value={form.password}
                 required
-                style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                autoComplete="new-password"
+                style={{ 
+                  paddingRight: '40px',
+                  borderColor: validFields.password ? 'var(--success)' : undefined,
+                  transition: 'all 0.3s ease'
+                }}
                 disabled={loading}
               />
               <button
@@ -172,33 +219,73 @@ function CitizenRegister() {
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
                   color: 'var(--neutral-medium)'
                 }}
                 tabIndex="-1"
               >
-                {showPassword ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4147 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8248 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                )}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  {showPassword ? (
+                    <><path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/></>
+                  ) : (
+                    <><path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4147 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8248 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke="currentColor" strokeWidth="2"/><path d="M1 1L23 23" stroke="currentColor" strokeWidth="2"/></>
+                  )}
+                </svg>
               </button>
             </div>
+            
+            {form.password && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: getStrengthColor(passwordStrength) }}>
+                    {getStrengthLabel(passwordStrength)}
+                  </span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--neutral-medium)' }}>
+                    {Math.round(passwordStrength)}%
+                  </span>
+                </div>
+                <div style={{ 
+                  height: '4px', 
+                  background: 'var(--neutral-lighter)', 
+                  borderRadius: '2px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${passwordStrength}%`,
+                    background: getStrengthColor(passwordStrength),
+                    transition: 'all 0.3s ease',
+                    borderRadius: '2px'
+                  }} />
+                </div>
+                
+                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  {passwordRequirements.map((req, i) => (
+                    <div key={i} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      fontSize: 'var(--font-size-xs)',
+                      color: req.test(form.password) ? 'var(--success)' : 'var(--neutral-medium)',
+                      transition: 'color 0.2s ease'
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        {req.test(form.password) ? (
+                          <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        ) : (
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                        )}
+                      </svg>
+                      {req.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
             <div style={{ position: 'relative' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--neutral-medium)' }}>
-                <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
               <input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -207,7 +294,12 @@ function CitizenRegister() {
                 onChange={handleChange}
                 value={form.confirmPassword}
                 required
-                style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                autoComplete="new-password"
+                style={{ 
+                  paddingRight: '40px',
+                  borderColor: validFields.confirmPassword ? 'var(--success)' : undefined,
+                  transition: 'all 0.3s ease'
+                }}
                 disabled={loading}
               />
               <button
@@ -222,23 +314,17 @@ function CitizenRegister() {
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
                   color: 'var(--neutral-medium)'
                 }}
                 tabIndex="-1"
               >
-                {showConfirmPassword ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4147 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8248 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                )}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  {showConfirmPassword ? (
+                    <><path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/></>
+                  ) : (
+                    <><path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4147 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8248 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke="currentColor" strokeWidth="2"/><path d="M1 1L23 23" stroke="currentColor" strokeWidth="2"/></>
+                  )}
+                </svg>
               </button>
             </div>
           </div>
@@ -246,7 +332,7 @@ function CitizenRegister() {
           <button
             type="submit"
             className="btn-primary"
-            disabled={loading || success}
+            disabled={loading || !isFormValid || success}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           >
             {loading ? (
