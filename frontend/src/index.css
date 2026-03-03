@@ -1,7 +1,14 @@
 /* ============================================
-   COLOR VARIABLES & DESIGN TOKENS
+   DESIGN TOKENS & TIMING
    ============================================ */
 :root {
+  /* Animation Timing - Centralized */
+  --timing-fast: 150ms;
+  --timing-base: 250ms;
+  --timing-slow: 350ms;
+  --timing-slower: 500ms;
+  --easing: ease-in-out;
+  
   /* Primary Colors */
   --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --primary-main: #667eea;
@@ -63,9 +70,21 @@
   --radius-xl: 12px;
   
   /* Transitions */
-  --transition-fast: 150ms ease-in-out;
-  --transition-base: 250ms ease-in-out;
-  --transition-slow: 350ms ease-in-out;
+  --transition-fast: var(--timing-fast) var(--easing);
+  --transition-base: var(--timing-base) var(--easing);
+  --transition-slow: var(--timing-slow) var(--easing);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ============================================
@@ -868,6 +887,28 @@ tbody tr:hover {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
