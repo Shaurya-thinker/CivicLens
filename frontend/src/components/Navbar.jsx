@@ -1,31 +1,69 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import api from '../services/api';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('role');
+    const userData = localStorage.getItem('user');
     setIsLoggedIn(!!token);
     setRole(userRole);
+    if (userData) setUser(JSON.parse(userData));
+
+    if (userRole === 'admin') {
+      fetchPendingCount();
+    }
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [location]);
+
+  const fetchPendingCount = async () => {
+    try {
+      const response = await api.get('/complaints');
+      const complaints = response.data.complaints || response.data;
+      setPendingCount(complaints.filter(c => c.status === 'Pending').length);
+    } catch (err) {
+      console.error('Failed to fetch pending count:', err);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('user');
     setIsLoggedIn(false);
     setRole(null);
+    setUser(null);
+    setShowDropdown(false);
     navigate('/');
   };
 
   const isActive = (path) => location.pathname === path;
 
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   return (
-    <nav className="navbar">
+    <nav className="navbar" style={{
+      boxShadow: scrolled ? '0 4px 20px rgba(0, 0, 0, 0.1)' : '0 2px 20px rgba(0, 0, 0, 0.08)',
+      transition: 'box-shadow 0.3s ease'
+    }}>
       <div className="nav-container">
         <Link to="/" className="nav-brand">
           <div className="brand-logo">
@@ -92,7 +130,7 @@ export default function Navbar() {
                 </>
               )}
               {role === 'admin' && (
-                <Link to="/admin/dashboard" className={isActive('/admin/dashboard') ? 'nav-link active' : 'nav-link'}>
+                <Link to="/admin/dashboard" className={isActive('/admin/dashboard') ? 'nav-link active' : 'nav-link'} style={{ position: 'relative' }}>
                   <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                     <path d="M3 3H10V10H3V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M14 3H21V10H14V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -100,16 +138,103 @@ export default function Navbar() {
                     <path d="M3 14H10V21H3V14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <span>Dashboard</span>
+                  {pendingCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      width: '18px',
+                      height: '18px',
+                      background: 'var(--error)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: 'white',
+                      animation: 'pulseGlow 2s ease-in-out infinite'
+                    }}>
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </span>
+                  )}
                 </Link>
               )}
-              <button onClick={handleLogout} className="logout-btn">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M16 17L21 12L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span>Logout</span>
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--primary-gradient)',
+                    border: '2px solid white',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                >
+                  {getInitials(user?.name)}
+                </button>
+                {showDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.5rem',
+                    background: 'white',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    minWidth: '200px',
+                    padding: 'var(--spacing-sm)',
+                    zIndex: 1000,
+                    animation: 'slideDown 0.3s ease-out'
+                  }}>
+                    <div style={{
+                      padding: 'var(--spacing-md)',
+                      borderBottom: '1px solid var(--neutral-lighter)'
+                    }}>
+                      <p style={{ margin: 0, fontWeight: 600, color: 'var(--neutral-dark)' }}>{user?.name}</p>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        width: '100%',
+                        padding: 'var(--spacing-md)',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        color: 'var(--error)',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--neutral-bg)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M16 17L21 12L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>

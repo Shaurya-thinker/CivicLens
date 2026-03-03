@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './components/Toast';
 import Navbar from './components/Navbar';
 import CitizenLogin from './pages/CitizenLogin';
 import CitizenRegister from './pages/CitizenRegister';
@@ -10,7 +11,7 @@ import PublicDashboard from './pages/PublicDashboard';
 
 function App() {
   return (
-    <BrowserRouter>
+    <ToastProvider>
       <Navbar />
       <Routes>
         <Route path="/" element={<PublicDashboard />} />
@@ -22,7 +23,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </BrowserRouter>
+    </ToastProvider>
   );
 }
 
