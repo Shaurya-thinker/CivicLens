@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../services/api";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 function CitizenLogin() {
   const navigate = useNavigate();
@@ -8,10 +9,42 @@ function CitizenLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [rememberEmail, setRememberEmail] = useLocalStorage('rememberEmail', false);
+  const [savedEmail, setSavedEmail] = useLocalStorage('savedEmail', '');
+  const [focusedField, setFocusedField] = useState('');
+  const [validFields, setValidFields] = useState({ email: false, password: false });
+
+  useEffect(() => {
+    if (rememberEmail && savedEmail) {
+      setForm(prev => ({ ...prev, email: savedEmail }));
+      setValidFields(prev => ({ ...prev, email: true }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      setCapsLockOn(e.getModifierState && e.getModifierState('CapsLock'));
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('keyup', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('keyup', handleKeyPress);
+    };
+  }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
     setError("");
+    
+    if (name === 'email') {
+      setValidFields(prev => ({ ...prev, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) }));
+    }
+    if (name === 'password') {
+      setValidFields(prev => ({ ...prev, password: value.length >= 6 }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -23,6 +56,11 @@ function CitizenLogin() {
       const { data } = await API.post("/auth/login", form);
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.role);
+      
+      if (rememberEmail) {
+        setSavedEmail(form.email);
+      }
+      
       navigate("/my-complaints");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid credentials");
@@ -31,8 +69,13 @@ function CitizenLogin() {
     }
   };
 
+  const isFormValid = validFields.email && validFields.password;
+
   return (
-    <div className="auth-container">
+    <div className="auth-container" style={{
+      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+      animation: 'fadeIn 0.5s ease-out'
+    }}>
       <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ 
@@ -58,7 +101,7 @@ function CitizenLogin() {
         </div>
 
         {error && (
-          <div className="error-message">
+          <div className="error-message" style={{ animation: 'slideDown 0.3s ease-out' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
               <path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -68,9 +111,22 @@ function CitizenLogin() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="on">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label 
+              htmlFor="email"
+              style={{
+                transform: focusedField === 'email' || form.email ? 'translateY(-8px) scale(0.85)' : 'translateY(0) scale(1)',
+                transition: 'all 0.2s ease',
+                position: focusedField === 'email' || form.email ? 'relative' : 'absolute',
+                top: focusedField === 'email' || form.email ? '0' : '38px',
+                left: focusedField === 'email' || form.email ? '0' : '40px',
+                pointerEvents: 'none',
+                color: focusedField === 'email' ? 'var(--primary-main)' : 'var(--neutral-dark)'
+              }}
+            >
+              Email Address
+            </label>
             <div style={{ position: 'relative' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--neutral-medium)' }}>
                 <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -80,18 +136,43 @@ function CitizenLogin() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder=""
                 onChange={handleChange}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField('')}
                 value={form.email}
                 required
-                style={{ paddingLeft: '40px' }}
+                autoComplete="email"
+                style={{ 
+                  paddingLeft: '40px',
+                  borderColor: validFields.email ? 'var(--success)' : undefined,
+                  transition: 'all 0.3s ease'
+                }}
                 disabled={loading}
               />
+              {validFields.email && (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', right: '12px', top: '14px', color: 'var(--success)' }}>
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label 
+              htmlFor="password"
+              style={{
+                transform: focusedField === 'password' || form.password ? 'translateY(-8px) scale(0.85)' : 'translateY(0) scale(1)',
+                transition: 'all 0.2s ease',
+                position: focusedField === 'password' || form.password ? 'relative' : 'absolute',
+                top: focusedField === 'password' || form.password ? '0' : '38px',
+                left: focusedField === 'password' || form.password ? '0' : '40px',
+                pointerEvents: 'none',
+                color: focusedField === 'password' ? 'var(--primary-main)' : 'var(--neutral-dark)'
+              }}
+            >
+              Password
+            </label>
             <div style={{ position: 'relative' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--neutral-medium)' }}>
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -101,11 +182,19 @@ function CitizenLogin() {
                 id="password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
+                placeholder=""
                 onChange={handleChange}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField('')}
                 value={form.password}
                 required
-                style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                autoComplete="current-password"
+                style={{ 
+                  paddingLeft: '40px', 
+                  paddingRight: '40px',
+                  borderColor: validFields.password ? 'var(--success)' : undefined,
+                  transition: 'all 0.3s ease'
+                }}
                 disabled={loading}
               />
               <button
@@ -128,23 +217,51 @@ function CitizenLogin() {
               >
                 {showPassword ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
                   </svg>
                 ) : (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4147 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8248 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12C13.8454 14.4147 13.5141 14.6512 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1752 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.4811 9.80385 14.1962C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8248 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4858 9.58525 10.1546 9.88 9.88" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2"/>
                   </svg>
                 )}
               </button>
             </div>
+            {capsLockOn && (
+              <small style={{ 
+                color: 'var(--warning)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.25rem', 
+                marginTop: '0.25rem',
+                animation: 'fadeIn 0.3s'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 12H8V22H16V12H22L12 2Z" fill="currentColor"/>
+                </svg>
+                Caps Lock is on
+              </small>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-lg)' }}>
+            <input
+              type="checkbox"
+              id="remember"
+              checked={rememberEmail}
+              onChange={(e) => setRememberEmail(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <label htmlFor="remember" style={{ cursor: 'pointer', fontSize: 'var(--font-size-sm)', margin: 0, textTransform: 'none', letterSpacing: 0 }}>
+              Remember my email
+            </label>
           </div>
 
           <button
             type="submit"
             className="btn-primary"
-            disabled={loading}
+            disabled={loading || !isFormValid}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           >
             {loading ? (
