@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -8,7 +8,21 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [shake, setShake] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      setCapsLockOn(e.getModifierState && e.getModifierState('CapsLock'));
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('keyup', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('keyup', handleKeyPress);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,6 +34,8 @@ export default function AdminLogin() {
       
       if (response.data.user.role !== 'admin') {
         setError('Access denied. Admin credentials required.');
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
         setLoading(false);
         return;
       }
@@ -32,13 +48,18 @@ export default function AdminLogin() {
       console.error('Login error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Login failed';
       setError(errorMessage);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
+    <div className="auth-container" style={{
+      background: 'radial-gradient(circle at 50% 50%, rgba(240, 147, 251, 0.1) 0%, transparent 50%)',
+      animation: 'fadeIn 0.5s ease-out'
+    }}>
+      <div className="auth-card" style={{ animation: shake ? 'shake 0.5s' : 'slideUp 0.5s' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ 
             width: '64px', 
@@ -63,7 +84,10 @@ export default function AdminLogin() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {error && <div className="error-message">
+          {error && <div className="error-message" style={{
+            animation: 'slideDown 0.3s ease-out',
+            borderLeft: '4px solid var(--error)'
+          }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
               <path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -86,8 +110,13 @@ export default function AdminLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
                 required
-                style={{ paddingLeft: '40px' }}
+                style={{ 
+                  paddingLeft: '40px',
+                  transition: 'all 0.3s ease'
+                }}
                 disabled={loading}
+                onFocus={(e) => e.target.style.transform = 'scale(1.01)'}
+                onBlur={(e) => e.target.style.transform = 'scale(1)'}
               />
             </div>
           </div>
@@ -106,8 +135,14 @@ export default function AdminLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                style={{ 
+                  paddingLeft: '40px', 
+                  paddingRight: '40px',
+                  transition: 'all 0.3s ease'
+                }}
                 disabled={loading}
+                onFocus={(e) => e.target.style.transform = 'scale(1.01)'}
+                onBlur={(e) => e.target.style.transform = 'scale(1)'}
               />
               <button
                 type="button"
@@ -123,9 +158,12 @@ export default function AdminLogin() {
                   padding: 0,
                   display: 'flex',
                   alignItems: 'center',
-                  color: 'var(--neutral-medium)'
+                  color: 'var(--neutral-medium)',
+                  transition: 'color 0.2s'
                 }}
                 tabIndex="-1"
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-main)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--neutral-medium)'}
               >
                 {showPassword ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -140,12 +178,27 @@ export default function AdminLogin() {
                 )}
               </button>
             </div>
+            {capsLockOn && (
+              <small style={{ 
+                color: 'var(--warning)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.25rem', 
+                marginTop: '0.25rem',
+                animation: 'fadeIn 0.3s'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 12H8V22H16V12H22L12 2Z" fill="currentColor"/>
+                </svg>
+                Caps Lock is on
+              </small>
+            )}
           </div>
 
           <button
             type="submit"
             className="btn-primary"
-            disabled={loading || !email || !password}
+            disabled={loading}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           >
             {loading ? (

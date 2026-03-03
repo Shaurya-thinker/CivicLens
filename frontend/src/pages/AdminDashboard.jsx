@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import Filters from '../components/Filters';
+import DonutChart from '../components/DonutChart';
+import { useCountUp } from '../hooks/useCountUp';
+import { useToast } from '../components/Toast';
 
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -9,10 +12,40 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [isSticky, setIsSticky] = useState(false);
+  const { addToast } = useToast();
+
+  const totalCount = useCountUp(stats.total, 1200);
+  const pendingCount = useCountUp(stats.pending, 1200);
+  const inProgressCount = useCountUp(stats.inProgress, 1200);
+  const resolvedCount = useCountUp(stats.resolved, 1200);
 
   useEffect(() => {
     fetchComplaints();
+    const savedFilters = localStorage.getItem('adminFilters');
+    if (savedFilters) {
+      const filters = JSON.parse(savedFilters);
+      handleFilter(filters);
+    }
+
+    const handleScroll = () => {
+      setIsSticky(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      filterAndSearch();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, complaints]);
 
   const fetchComplaints = async () => {
     try {
@@ -21,9 +54,10 @@ export default function AdminDashboard() {
       setComplaints(complaintsList);
       setFilteredComplaints(complaintsList);
       calculateStats(complaintsList);
+      setLastUpdated(new Date());
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch complaints');
-      console.error('Fetch complaints error:', err);
+      addToast('Failed to load complaints', 'error');
     } finally {
       setLoading(false);
     }
@@ -39,6 +73,7 @@ export default function AdminDashboard() {
   };
 
   const handleStatusChange = async (complaintId, newStatus) => {
+    setUpdatingStatus(complaintId);
     try {
       await api.patch(`/complaints/${complaintId}/status`, { status: newStatus });
       const updated = complaints.map(c => 
@@ -47,12 +82,16 @@ export default function AdminDashboard() {
       setComplaints(updated);
       setFilteredComplaints(updated);
       calculateStats(updated);
+      addToast(`Status updated to ${newStatus}`, 'success');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
+      addToast(err.response?.data?.message || 'Failed to update status', 'error');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
   const handleFilter = (filters) => {
+    localStorage.setItem('adminFilters', JSON.stringify(filters));
     let filtered = [...complaints];
 
     if (filters.category) {
@@ -65,6 +104,59 @@ export default function AdminDashboard() {
 
     setFilteredComplaints(filtered);
   };
+
+  const filterAndSearch = () => {
+    let filtered = [...complaints];
+    
+    if (searchTerm) {
+      filtered = filtered.filter(c => 
+        c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    setFilteredComplaints(filtered);
+  };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedComplaints = useMemo(() => {
+    let sorted = [...filteredComplaints];
+    if (sortConfig.key) {
+      sorted.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        
+        if (sortConfig.key === 'createdAt') {
+          aVal = new Date(aVal);
+          bVal = new Date(bVal);
+        }
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sorted;
+  }, [filteredComplaints, sortConfig]);
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    addToast('Copied to clipboard', 'success');
+  };
+
+  const chartData = [
+    { label: 'Pending', value: stats.pending, color: 'var(--status-pending)' },
+    { label: 'In Progress', value: stats.inProgress, color: 'var(--status-progress)' },
+    { label: 'Resolved', value: stats.resolved, color: 'var(--status-resolved)' }
+  ];
 
   if (loading) {
     return (
@@ -105,33 +197,88 @@ export default function AdminDashboard() {
           </svg>
           <h1 style={{ margin: 0 }}>Admin Dashboard</h1>
         </div>
-        <p style={{ color: 'var(--neutral-medium)', fontSize: 'var(--font-size-base)' }}>
-          Manage and review all citizen complaints
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <p style={{ color: 'var(--neutral-medium)', fontSize: 'var(--font-size-base)', margin: 0 }}>
+            Manage and review all citizen complaints
+          </p>
+          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--neutral-medium)' }}>
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </span>
+        </div>
       </div>
 
       <div className="stats-grid">
         <div className="stat-card">
           <h3>Total Complaints</h3>
-          <p className="stat-number">{stats.total}</p>
+          <p className="stat-number">{totalCount}</p>
         </div>
         <div className="stat-card">
           <h3>Pending</h3>
-          <p className="stat-number pending">{stats.pending}</p>
+          <p className="stat-number pending">{pendingCount}</p>
         </div>
         <div className="stat-card">
           <h3>In Progress</h3>
-          <p className="stat-number in-progress">{stats.inProgress}</p>
+          <p className="stat-number in-progress">{inProgressCount}</p>
         </div>
         <div className="stat-card">
           <h3>Resolved</h3>
-          <p className="stat-number resolved">{stats.resolved}</p>
+          <p className="stat-number resolved">{resolvedCount}</p>
         </div>
       </div>
 
+      {stats.total > 0 && (
+        <div style={{
+          background: 'var(--white)',
+          padding: 'var(--spacing-xl)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid var(--neutral-lighter)',
+          marginTop: 'var(--spacing-xl)'
+        }}>
+          <h3 style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>Status Distribution</h3>
+          <DonutChart data={chartData} />
+        </div>
+      )}
+
       <Filters onFilter={handleFilter} />
 
-      {filteredComplaints.length === 0 ? (
+      <div style={{
+        background: 'var(--white)',
+        padding: 'var(--spacing-lg)',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-md)',
+        border: '1px solid var(--neutral-lighter)',
+        marginBottom: 'var(--spacing-lg)'
+      }}>
+        <div style={{ position: 'relative' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--neutral-medium)'
+          }}>
+            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+            <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search complaints by title, description, or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: 'var(--spacing-md) var(--spacing-md) var(--spacing-md) 45px',
+              border: '2px solid var(--neutral-lighter)',
+              borderRadius: 'var(--radius-lg)',
+              fontSize: 'var(--font-size-base)',
+              transition: 'all var(--transition-base)'
+            }}
+          />
+        </div>
+      </div>
+
+      {sortedComplaints.length === 0 ? (
         <div style={{
           background: 'var(--white)',
           padding: 'var(--spacing-xl)',
@@ -143,55 +290,107 @@ export default function AdminDashboard() {
             <path d="M22 12H18L15 21L9 3L6 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <p style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500 }}>No complaints found</p>
-          <p>Try adjusting your filters</p>
+          <p>Try adjusting your filters or search</p>
         </div>
       ) : (
         <div className="complaints-table">
           <table>
-            <thead>
+            <thead style={{ position: isSticky ? 'sticky' : 'relative', top: isSticky ? '70px' : '0', zIndex: 10, boxShadow: isSticky ? 'var(--shadow-md)' : 'none' }}>
               <tr>
-                <th>Title</th>
+                <th onClick={() => handleSort('title')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Title {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th>Category</th>
-                <th>Status</th>
+                <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th>Created By</th>
-                <th>Date</th>
+                <th onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Date {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredComplaints.map(complaint => (
-                <tr key={complaint._id}>
-                  <td style={{ fontWeight: 500, color: 'var(--neutral-dark)' }}>{complaint.title}</td>
-                  <td>
-                    <span style={{
-                      backgroundColor: 'var(--neutral-bg)',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 500
-                    }}>
-                      {complaint.category}
-                    </span>
-                  </td>
-                  <td><StatusBadge status={complaint.status} /></td>
-                  <td style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>
-                    {complaint.createdBy?.name || 'Unknown'}
-                  </td>
-                  <td style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>
-                    {new Date(complaint.createdAt).toLocaleDateString()}
-                  </td>
-                  <td>
-                    <select
-                      value={complaint.status}
-                      onChange={(e) => handleStatusChange(complaint._id, e.target.value)}
-                      className="status-select"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
-                    </select>
-                  </td>
-                </tr>
+              {sortedComplaints.map(complaint => (
+                <>
+                  <tr key={complaint._id} onClick={() => setExpandedRow(expandedRow === complaint._id ? null : complaint._id)} style={{ cursor: 'pointer' }}>
+                    <td style={{ fontWeight: 500, color: 'var(--neutral-dark)' }}>{complaint.title}</td>
+                    <td>
+                      <span style={{
+                        backgroundColor: 'var(--neutral-bg)',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: 'var(--font-size-sm)',
+                        fontWeight: 500
+                      }}>
+                        {complaint.category}
+                      </span>
+                    </td>
+                    <td><StatusBadge status={complaint.status} /></td>
+                    <td style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>
+                      {complaint.createdBy?.name || 'Unknown'}
+                    </td>
+                    <td style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>
+                      {new Date(complaint.createdAt).toLocaleDateString()}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={complaint.status}
+                        onChange={(e) => handleStatusChange(complaint._id, e.target.value)}
+                        className="status-select"
+                        disabled={updatingStatus === complaint._id}
+                        style={{ opacity: updatingStatus === complaint._id ? 0.6 : 1 }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                      </select>
+                    </td>
+                  </tr>
+                  {expandedRow === complaint._id && (
+                    <tr>
+                      <td colSpan="6" style={{ background: 'var(--neutral-bg)', padding: 'var(--spacing-lg)' }}>
+                        <div style={{ display: 'grid', gap: 'var(--spacing-md)' }}>
+                          <div>
+                            <strong style={{ color: 'var(--neutral-dark)' }}>Description:</strong>
+                            <p style={{ margin: '0.5rem 0 0 0', color: 'var(--neutral-medium)' }}>{complaint.description}</p>
+                          </div>
+                          <div style={{ display: 'flex', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+                            <div>
+                              <strong style={{ color: 'var(--neutral-dark)' }}>Complaint ID:</strong>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                <code style={{ background: 'var(--white)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)' }}>
+                                  {complaint._id}
+                                </code>
+                                <button
+                                  onClick={() => copyToClipboard(complaint._id)}
+                                  style={{
+                                    background: 'var(--primary-main)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    cursor: 'pointer',
+                                    fontSize: 'var(--font-size-xs)'
+                                  }}
+                                >
+                                  Copy
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <strong style={{ color: 'var(--neutral-dark)' }}>Full Timestamp:</strong>
+                              <p style={{ margin: '0.25rem 0 0 0', color: 'var(--neutral-medium)', fontSize: 'var(--font-size-sm)' }}>
+                                {new Date(complaint.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
