@@ -3,6 +3,8 @@ import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import SkeletonCard from '../components/SkeletonCard';
 import { useCountUp } from '../hooks/useCountUp';
+import useTilt from '../hooks/useTilt';
+import TypingText from '../components/TypingText';
 
 export default function PublicDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -17,6 +19,12 @@ export default function PublicDashboard() {
   const resolvedCount = useCountUp(stats.resolved, 1200);
   const pendingCount = useCountUp(stats.pending, 1200);
   const inProgressCount = useCountUp(stats.inProgress, 1200);
+
+  const tilt1 = useTilt(8);
+  const tilt2 = useTilt(8);
+  const tilt3 = useTilt(8);
+  const tilt4 = useTilt(8);
+  const tilts = [tilt1, tilt2, tilt3, tilt4];
 
   useEffect(() => {
     fetchComplaints();
@@ -107,7 +115,7 @@ export default function PublicDashboard() {
             <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M10 9H9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <h1 style={{ margin: 0 }}>Public Complaint Dashboard</h1>
+          <h1 style={{ margin: 0 }}><TypingText text="Public Complaint Dashboard" speed={60} /></h1>
         </div>
         <p style={{ color: 'var(--neutral-medium)', fontSize: 'var(--font-size-base)' }}>
           View all submitted complaints and their resolution status
@@ -123,34 +131,26 @@ export default function PublicDashboard() {
       </div>}
 
       <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Total Complaints</h3>
-          <p className="stat-number">{totalCount}</p>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)', marginTop: 'var(--spacing-sm)' }}>
-            Across all categories
-          </p>
-        </div>
-        <div className="stat-card">
-          <h3>Resolved</h3>
-          <p className="stat-number resolved">{resolvedCount}</p>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)', marginTop: 'var(--spacing-sm)' }}>
-            {getResolutionRate()}% completion
-          </p>
-        </div>
-        <div className="stat-card">
-          <h3>In Progress</h3>
-          <p className="stat-number in-progress">{inProgressCount}</p>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)', marginTop: 'var(--spacing-sm)' }}>
-            Being worked on
-          </p>
-        </div>
-        <div className="stat-card">
-          <h3>Pending</h3>
-          <p className="stat-number pending">{pendingCount}</p>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)', marginTop: 'var(--spacing-sm)' }}>
-            Awaiting review
-          </p>
-        </div>
+        {[
+          { title: 'Total Complaints', value: totalCount, className: '', subtitle: 'Across all categories' },
+          { title: 'Resolved', value: resolvedCount, className: 'resolved', subtitle: `${getResolutionRate()}% completion` },
+          { title: 'In Progress', value: inProgressCount, className: 'in-progress', subtitle: 'Being worked on' },
+          { title: 'Pending', value: pendingCount, className: 'pending', subtitle: 'Awaiting review' }
+        ].map((stat, idx) => (
+          <div 
+            key={stat.title}
+            className="stat-card tilt-card"
+            ref={tilts[idx].ref}
+            onMouseMove={tilts[idx].handleMouseMove}
+            onMouseLeave={tilts[idx].handleMouseLeave}
+          >
+            <h3>{stat.title}</h3>
+            <p className={`stat-number ${stat.className}`}>{stat.value}</p>
+            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)', marginTop: 'var(--spacing-sm)' }}>
+              {stat.subtitle}
+            </p>
+          </div>
+        ))}
       </div>
 
       {stats.total > 0 && (

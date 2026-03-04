@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
+import Confetti from "../components/Confetti";
 
 const MAX_DESCRIPTION = 500;
 
@@ -18,6 +19,7 @@ export default function RaiseComplaint() {
   const [serverError, setServerError] = useState("");
   const [draftSaved, setDraftSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const categories = [
     { value: "Road", icon: "🛣️", label: "Road Issues", keywords: ['road', 'street', 'pothole', 'pavement', 'highway'] },
@@ -127,8 +129,9 @@ export default function RaiseComplaint() {
       await api.post("/complaints", form);
       localStorage.removeItem('complaintDraft');
       setIsDirty(false);
+      setShowConfetti(true);
       addToast('Complaint submitted successfully!', 'success');
-      navigate("/my-complaints");
+      setTimeout(() => navigate("/my-complaints"), 1500);
     } catch (err) {
       setServerError(err.response?.data?.message || "Failed to submit complaint. Please try again.");
       addToast('Failed to submit complaint', 'error');
@@ -141,7 +144,9 @@ export default function RaiseComplaint() {
   const descColor = descProgress > 90 ? 'var(--error)' : descProgress > 70 ? 'var(--warning)' : 'var(--success)';
 
   return (
-    <div className="container" style={{ paddingTop: "2rem", paddingBottom: "2rem" }}>
+    <>
+      <Confetti trigger={showConfetti} />
+      <div className="container" style={{ paddingTop: "2rem", paddingBottom: "2rem" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", display: 'grid', gridTemplateColumns: step === 2 ? '1fr 1fr' : '1fr', gap: 'var(--spacing-xl)' }}>
         <div style={{ maxWidth: step === 1 ? "700px" : "100%", margin: step === 1 ? "0 auto" : "0" }}>
           <div style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
@@ -395,5 +400,6 @@ export default function RaiseComplaint() {
         )}
       </div>
     </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import Filters from '../components/Filters';
 import DonutChart from '../components/DonutChart';
 import { useCountUp } from '../hooks/useCountUp';
 import { useToast } from '../components/Toast';
+import useRipple from '../hooks/useRipple';
 
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -19,6 +20,7 @@ export default function AdminDashboard() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isSticky, setIsSticky] = useState(false);
   const { addToast } = useToast();
+  const { addRipple, rippleElements } = useRipple();
 
   const totalCount = useCountUp(stats.total, 1200);
   const pendingCount = useCountUp(stats.pending, 1200);
@@ -338,10 +340,12 @@ export default function AdminDashboard() {
                       <select
                         value={complaint.status}
                         onChange={(e) => handleStatusChange(complaint._id, e.target.value)}
-                        className="status-select"
+                        onMouseDown={addRipple}
+                        className="status-select ripple-container"
                         disabled={updatingStatus === complaint._id}
-                        style={{ opacity: updatingStatus === complaint._id ? 0.6 : 1 }}
+                        style={{ opacity: updatingStatus === complaint._id ? 0.6 : 1, position: 'relative' }}
                       >
+                        {rippleElements}
                         <option value="Pending">Pending</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Resolved">Resolved</option>

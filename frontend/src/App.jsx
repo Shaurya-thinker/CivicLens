@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/Toast';
+import ParticleBackground from './components/ParticleBackground';
+import FAB from './components/FAB';
 import Navbar from './components/Navbar';
 import CitizenLogin from './pages/CitizenLogin';
 import CitizenRegister from './pages/CitizenRegister';
@@ -12,6 +14,7 @@ import PublicDashboard from './pages/PublicDashboard';
 function App() {
   return (
     <ToastProvider>
+      <ParticleBackground />
       <Navbar />
       <Routes>
         <Route path="/" element={<PublicDashboard />} />
@@ -23,6 +26,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <FAB />
     </ToastProvider>
   );
 }

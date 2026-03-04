@@ -1,6 +1,6 @@
 export default function SkeletonCard() {
   return (
-    <div className="complaint-item" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>
+    <div className="complaint-item skeleton-shimmer">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-md)' }}>
         <div style={{ 
           width: '60%', 
