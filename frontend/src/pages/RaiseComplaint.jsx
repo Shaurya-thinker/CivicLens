@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
 import Confetti from "../components/Confetti";
+import ComplaintAnimatedBg from "../components/ComplaintAnimatedBg";
 
 const MAX_DESCRIPTION = 500;
 
@@ -144,7 +145,9 @@ export default function RaiseComplaint() {
   const descColor = descProgress > 90 ? 'var(--error)' : descProgress > 70 ? 'var(--warning)' : 'var(--success)';
 
   return (
-    <>
+    <div className="page-with-bg">
+      <ComplaintAnimatedBg />
+      <div className="page-content">
       <Confetti trigger={showConfetti} />
       <div className="container" style={{ paddingTop: "2rem", paddingBottom: "2rem" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", display: 'grid', gridTemplateColumns: step === 2 ? '1fr 1fr' : '1fr', gap: 'var(--spacing-xl)' }}>
@@ -400,6 +403,7 @@ export default function RaiseComplaint() {
         )}
       </div>
     </div>
-    </>
+      </div>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import { useCountUp } from "../hooks/useCountUp";
 import { useDebounce } from "../hooks/useDebounce";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import MyComplaintsAnimatedBg from "../components/MyComplaintsAnimatedBg";
 
 function MyComplaints() {
   const [complaints, setComplaints] = useState([]);
@@ -127,7 +128,9 @@ function MyComplaints() {
   const allResolved = stats.total > 0 && stats.resolved === stats.total;
 
   return (
-    <div className="container">
+    <div className="page-with-bg">
+      <MyComplaintsAnimatedBg />
+      <div className="page-content container">
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -378,6 +381,7 @@ function MyComplaints() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

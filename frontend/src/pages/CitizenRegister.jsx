@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../services/api";
+import AuthAnimatedBg from "../components/AuthAnimatedBg";
 
 function CitizenRegister() {
   const navigate = useNavigate();
@@ -95,10 +96,12 @@ function CitizenRegister() {
   const passwordStrength = getPasswordStrength(form.password);
 
   return (
-    <div className="auth-container" style={{
-      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-      animation: 'fadeIn 0.5s ease-out'
-    }}>
+    <div className="page-with-bg">
+      <AuthAnimatedBg />
+      <div className="page-content auth-container" style={{
+        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+        animation: 'fadeIn 0.5s ease-out'
+      }}>
       <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ 
@@ -363,6 +366,7 @@ function CitizenRegister() {
             </Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

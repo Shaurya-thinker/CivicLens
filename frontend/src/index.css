@@ -1501,3 +1501,501 @@ html {
     animation: none !important;
   }
 }
+
+/* ============================================
+   ANIMATED BACKGROUNDS
+   ============================================ */
+
+/* AUTH ANIMATED BACKGROUND */
+.auth-animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.auth-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.3;
+  animation: authOrbFloat 20s ease-in-out infinite;
+}
+
+.auth-orb-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.4) 0%, transparent 70%);
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.auth-orb-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.3) 0%, transparent 70%);
+  bottom: 15%;
+  right: 10%;
+  animation-delay: 2s;
+}
+
+.auth-orb-3 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.25) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 4s;
+}
+
+@keyframes authOrbFloat {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(30px, -30px);
+  }
+  50% {
+    transform: translate(-20px, 20px);
+  }
+  75% {
+    transform: translate(25px, 15px);
+  }
+}
+
+.auth-mesh {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.auth-flow-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: authFlowDraw 8s ease-in-out infinite;
+}
+
+.auth-flow-1 {
+  animation-delay: 0s;
+}
+
+.auth-flow-2 {
+  animation-delay: 4s;
+}
+
+@keyframes authFlowDraw {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1000;
+  }
+}
+
+/* DASHBOARD ANIMATED BACKGROUND */
+.dashboard-animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.dashboard-grid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 25%);
+  grid-template-rows: repeat(3, 33.33%);
+  opacity: 0.4;
+}
+
+.grid-cell {
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, transparent 100%);
+  animation: gridPulse 4s ease-in-out infinite;
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.2;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, transparent 100%);
+  }
+  50% {
+    opacity: 0.4;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
+  }
+}
+
+.dashboard-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  animation: dashboardOrbFloat 25s ease-in-out infinite;
+}
+
+.dashboard-orb-1 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.25) 0%, transparent 70%);
+  top: 5%;
+  left: 5%;
+  animation-delay: 0s;
+}
+
+.dashboard-orb-2 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(56, 161, 105, 0.2) 0%, transparent 70%);
+  top: 60%;
+  right: 10%;
+  animation-delay: 3s;
+}
+
+.dashboard-orb-3 {
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.2) 0%, transparent 70%);
+  bottom: 20%;
+  left: 15%;
+  animation-delay: 6s;
+}
+
+.dashboard-orb-4 {
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.2) 0%, transparent 70%);
+  top: 40%;
+  left: 50%;
+  animation-delay: 9s;
+}
+
+@keyframes dashboardOrbFloat {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(-40px, 40px);
+  }
+  66% {
+    transform: translate(40px, -30px);
+  }
+}
+
+.dashboard-shape {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.dashboard-pulse-circle {
+  animation: dashboardPulse 8s ease-in-out infinite;
+}
+
+@keyframes dashboardPulse {
+  0%, 100% {
+    r: 350px;
+    opacity: 0.1;
+  }
+  50% {
+    r: 450px;
+    opacity: 0.05;
+  }
+}
+
+/* COMPLAINT ANIMATED BACKGROUND */
+.complaint-animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.complaint-shape {
+  position: absolute;
+  filter: blur(60px);
+  opacity: 0.3;
+}
+
+.complaint-shape-item {
+  animation: complaintShapeFloat 15s ease-in-out infinite;
+}
+
+.complaint-shape:nth-child(1) {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.4) 0%, transparent 70%);
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.complaint-shape:nth-child(2) {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.3) 0%, transparent 70%);
+  top: 20%;
+  right: 15%;
+  animation-delay: 1s;
+  animation-duration: 12s;
+}
+
+.complaint-shape:nth-child(3) {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(56, 161, 105, 0.25) 0%, transparent 70%);
+  bottom: 30%;
+  left: 5%;
+  animation-delay: 2s;
+  animation-duration: 14s;
+}
+
+.complaint-shape:nth-child(4) {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+  bottom: 10%;
+  right: 10%;
+  animation-delay: 3s;
+  animation-duration: 16s;
+}
+
+.complaint-shape:nth-child(5) {
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.25) 0%, transparent 70%);
+  top: 50%;
+  left: 40%;
+  animation-delay: 4s;
+  animation-duration: 18s;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes complaintShapeFloat {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(50px, -50px);
+  }
+  50% {
+    transform: translate(-30px, 40px);
+  }
+  75% {
+    transform: translate(40px, 30px);
+  }
+}
+
+.complaint-svg-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.complaint-blob-1,
+.complaint-blob-2,
+.complaint-blob-3 {
+  animation: complaintBlobAnimateShift 12s ease-in-out infinite;
+}
+
+.complaint-blob-1 {
+  animation-delay: 0s;
+}
+
+.complaint-blob-2 {
+  animation-delay: 4s;
+}
+
+.complaint-blob-3 {
+  animation-delay: 8s;
+}
+
+@keyframes complaintBlobAnimateShift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, 30px);
+  }
+}
+
+.complaint-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: complaintGlowPulse 8s ease-in-out infinite;
+}
+
+.complaint-glow-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.2) 0%, transparent 70%);
+  top: 0%;
+  left: 20%;
+  animation-delay: 0s;
+}
+
+.complaint-glow-2 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(56, 161, 105, 0.15) 0%, transparent 70%);
+  bottom: 0%;
+  right: 15%;
+  animation-delay: 4s;
+}
+
+@keyframes complaintGlowPulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* MY COMPLAINTS ANIMATED BACKGROUND */
+.mycomplaints-animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.mycomplaints-indicator {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.5;
+}
+
+.status-line {
+  animation: statusLineFlow 6s ease-in-out infinite;
+}
+
+@keyframes statusLineFlow {
+  0%, 100% {
+    stroke-dashoffset: 0;
+    opacity: 0.3;
+  }
+  50% {
+    stroke-dashoffset: 200;
+    opacity: 0.6;
+  }
+}
+
+.status-indicator {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #667eea 0%, #764ba2 100%);
+  opacity: 0.4;
+  animation: statusIndicatorPulse 3s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.4);
+}
+
+@keyframes statusIndicatorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.6;
+  }
+}
+
+.mycomplaints-orb {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.2;
+  animation: myComplaintsOrbFloat 20s ease-in-out infinite;
+}
+
+.mycomplaints-orb-1 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+  top: 10%;
+  left: 5%;
+  filter: blur(40px);
+  animation-delay: 0s;
+}
+
+.mycomplaints-orb-2 {
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(56, 161, 105, 0.25) 0%, transparent 70%);
+  bottom: 15%;
+  right: 5%;
+  filter: blur(40px);
+  animation-delay: 4s;
+}
+
+.mycomplaints-orb-3 {
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.2) 0%, transparent 70%);
+  top: 50%;
+  right: 20%;
+  filter: blur(35px);
+  animation-delay: 8s;
+}
+
+@keyframes myComplaintsOrbFloat {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(25px, 25px);
+  }
+}
+
+.mycomplaints-mesh {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.3;
+}
+
+/* PAGE LAYOUT WITH ANIMATED BACKGROUNDS */
+.page-with-bg {
+  position: relative;
+  min-height: 100vh;
+}
+
+.page-content {
+  position: relative;
+  z-index: 2;
+}

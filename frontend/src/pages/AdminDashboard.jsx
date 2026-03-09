@@ -6,6 +6,7 @@ import DonutChart from '../components/DonutChart';
 import { useCountUp } from '../hooks/useCountUp';
 import { useToast } from '../components/Toast';
 import useRipple from '../hooks/useRipple';
+import DashboardAnimatedBg from '../components/DashboardAnimatedBg';
 
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -188,8 +189,10 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="container">
-      <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+    <div className="page-with-bg">
+      <DashboardAnimatedBg />
+      <div className="page-content container">
+        <div style={{ marginBottom: 'var(--spacing-xl)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--primary-main)' }}>
             <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -410,6 +413,7 @@ export default function AdminDashboard() {
         color: 'var(--neutral-medium)'
       }}>
         <p><strong style={{ color: 'var(--neutral-dark)' }}>Summary:</strong> {stats.total} total complaints with {stats.resolved} resolved and {stats.pending} pending</p>
+      </div>
       </div>
     </div>
   );

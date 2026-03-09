@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import AuthAnimatedBg from '../components/AuthAnimatedBg';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -55,10 +56,12 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="auth-container" style={{
-      background: 'radial-gradient(circle at 50% 50%, rgba(240, 147, 251, 0.1) 0%, transparent 50%)',
-      animation: 'fadeIn 0.5s ease-out'
-    }}>
+    <div className="page-with-bg">
+      <AuthAnimatedBg />
+      <div className="page-content auth-container" style={{
+        background: 'radial-gradient(circle at 50% 50%, rgba(240, 147, 251, 0.1) 0%, transparent 50%)',
+        animation: 'fadeIn 0.5s ease-out'
+      }}>
       <div className="auth-card" style={{ animation: shake ? 'shake 0.5s' : 'slideUp 0.5s' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ 
@@ -227,6 +230,7 @@ export default function AdminLogin() {
             password123
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
