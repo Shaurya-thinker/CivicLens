@@ -146,6 +146,7 @@ export default function Filters({ onFilter }) {
             <option value="Road">Road</option>
             <option value="Street Light">Street Light</option>
             <option value="Water">Water</option>
+            <option value="Electricity">Electricity</option>
             <option value="Other">Other</option>
           </select>
         </div>

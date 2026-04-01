@@ -75,6 +75,11 @@ app.get('/api/docs', (req, res) => {
         }
       },
       complaints: {
+        getPublicComplaints: {
+          method: 'GET',
+          path: '/api/complaints/public',
+          description: 'Get public complaints feed (sanitized fields, no user identity)'
+        },
         create: {
           method: 'POST',
           path: '/api/complaints',
@@ -110,7 +115,7 @@ app.get('/api/docs', (req, res) => {
         }
       }
     },
-    categories: ['Garbage', 'Road', 'Street Light', 'Water', 'Other'],
+    categories: ['Garbage', 'Road', 'Street Light', 'Water', 'Electricity', 'Other'],
     statuses: ['Pending', 'In Progress', 'Resolved']
   });
 });

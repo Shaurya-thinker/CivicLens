@@ -10,6 +10,19 @@ import MyComplaints from './pages/MyComplaints';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import PublicDashboard from './pages/PublicDashboard';
+import VerifyEmail from './pages/VerifyEmail';
+
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (!token) return <Navigate to="/admin/login" replace />;
+  return role === 'admin' ? children : <Navigate to="/" replace />;
+}
 
 function App() {
   return (
@@ -20,10 +33,11 @@ function App() {
         <Route path="/" element={<PublicDashboard />} />
         <Route path="/login" element={<CitizenLogin />} />
         <Route path="/register" element={<CitizenRegister />} />
-        <Route path="/raise" element={<RaiseComplaint />} />
-        <Route path="/my-complaints" element={<MyComplaints />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/raise" element={<ProtectedRoute><RaiseComplaint /></ProtectedRoute>} />
+        <Route path="/my-complaints" element={<ProtectedRoute><MyComplaints /></ProtectedRoute>} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <FAB />

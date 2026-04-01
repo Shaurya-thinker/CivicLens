@@ -13,7 +13,7 @@ export default function RaiseComplaint() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(() => {
     const draft = localStorage.getItem('complaintDraft');
-    return draft ? JSON.parse(draft) : { title: "", description: "", category: "" };
+    return draft ? JSON.parse(draft) : { title: "", location: "", description: "", category: "" };
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -43,7 +43,7 @@ export default function RaiseComplaint() {
   }, [isDirty]);
 
   useEffect(() => {
-    if (form.title || form.description || form.category) {
+    if (form.title || form.location || form.description || form.category) {
       setIsDirty(true);
       const timer = setTimeout(() => {
         localStorage.setItem('complaintDraft', JSON.stringify(form));
@@ -95,6 +95,11 @@ export default function RaiseComplaint() {
     }
     if (!form.category) {
       newErrors.category = "Please select a category";
+    }
+    if (!form.location.trim()) {
+      newErrors.location = "Location is required";
+    } else if (form.location.trim().length < 3) {
+      newErrors.location = "Location must be at least 3 characters";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -150,8 +155,8 @@ export default function RaiseComplaint() {
       <div className="page-content">
       <Confetti trigger={showConfetti} />
       <div className="container" style={{ paddingTop: "2rem", paddingBottom: "2rem" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto", display: 'grid', gridTemplateColumns: step === 2 ? '1fr 1fr' : '1fr', gap: 'var(--spacing-xl)' }}>
-        <div style={{ maxWidth: step === 1 ? "700px" : "100%", margin: step === 1 ? "0 auto" : "0" }}>
+      <div style={{ width: '100%', maxWidth: 'none', margin: "0 auto", display: 'grid', gridTemplateColumns: step === 2 ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1fr)', gap: 'var(--spacing-xl)' }}>
+        <div style={{ width: '100%', maxWidth: "100%", margin: "0" }}>
           <div style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
             <div style={{ 
               width: '64px', 
@@ -210,7 +215,7 @@ export default function RaiseComplaint() {
             </div>
           )}
 
-          <form className="auth-card" onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }} noValidate>
+          <form className="auth-card raise-complaint-card" onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }} noValidate>
             {step === 1 ? (
               <div style={{ animation: 'slideInFromLeft 0.3s ease-out' }}>
                 <div className="form-group">
@@ -228,6 +233,24 @@ export default function RaiseComplaint() {
                   {errors.title && (
                     <small style={{ color: "var(--error)", display: 'block', marginTop: '0.25rem' }}>
                       {errors.title}
+                    </small>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="location">Location</label>
+                  <input
+                    id="location"
+                    type="text"
+                    name="location"
+                    placeholder="Area, landmark, or address"
+                    value={form.location}
+                    onChange={handleChange}
+                    style={{ borderColor: errors.location ? 'var(--error)' : undefined }}
+                  />
+                  {errors.location && (
+                    <small style={{ color: "var(--error)", display: 'block', marginTop: '0.25rem' }}>
+                      {errors.location}
                     </small>
                   )}
                 </div>

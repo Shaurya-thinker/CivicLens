@@ -9,7 +9,13 @@
     "test": "node test-startup.js",
     "test:startup": "node test-startup.js"
   },
-  "keywords": ["civic", "complaints", "api", "express", "mongodb"],
+  "keywords": [
+    "civic",
+    "complaints",
+    "api",
+    "express",
+    "mongodb"
+  ],
   "author": "CivicLens Team",
   "license": "ISC",
   "type": "commonjs",
@@ -21,7 +27,8 @@
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.0.3"
+    "mongoose": "^8.0.3",
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

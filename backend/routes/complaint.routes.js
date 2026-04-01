@@ -1,6 +1,9 @@
 const express = require("express");
 const {
   createComplaint,
+  getPublicComplaints,
+  upvoteComplaint,
+  getMyUpvotedComplaintIds,
   getAllComplaints,
   getComplaintsByUser,
   updateComplaintStatus
@@ -24,11 +27,32 @@ router.post("/", verifyToken, createComplaint);
 router.get("/my", verifyToken, getComplaintsByUser);
 
 /**
- * @route   GET /api/complaints
- * @desc    Get all complaints
+ * @route   GET /api/complaints/public
+ * @desc    Get public complaint feed
  * @access  Public
  */
-router.get("/", getAllComplaints);
+router.get("/public", getPublicComplaints);
+
+/**
+ * @route   GET /api/complaints/upvotes/me
+ * @desc    Get complaint IDs upvoted by logged-in citizen
+ * @access  Private (Citizen)
+ */
+router.get("/upvotes/me", verifyToken, getMyUpvotedComplaintIds);
+
+/**
+ * @route   POST /api/complaints/:id/upvote
+ * @desc    Upvote a complaint
+ * @access  Private (Citizen)
+ */
+router.post("/:id/upvote", verifyToken, upvoteComplaint);
+
+/**
+ * @route   GET /api/complaints
+ * @desc    Get all complaints
+ * @access  Private (Admin)
+ */
+router.get("/", verifyToken, isAdmin, getAllComplaints);
 
 /**
  * @route   PATCH /api/complaints/:id/status

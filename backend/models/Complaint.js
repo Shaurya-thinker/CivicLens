@@ -13,10 +13,16 @@ const complaintSchema = new mongoose.Schema(
       required: true,
     },
 
+    location: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
     category: {
       type: String,
       required: true,
-      enum: ["Garbage", "Road", "Street Light", "Water", "Other"],
+      enum: ["Garbage", "Road", "Street Light", "Water", "Electricity", "Other"],
     },
 
     status: {
@@ -30,10 +36,61 @@ const complaintSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    statusHistory: [
+      {
+        fromStatus: {
+          type: String,
+          enum: ["Pending", "In Progress", "Resolved"],
+          required: true,
+        },
+        toStatus: {
+          type: String,
+          enum: ["Pending", "In Progress", "Resolved"],
+          required: true,
+        },
+        changedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        reason: {
+          type: String,
+          trim: true,
+          default: "",
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
+    reopenCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 1,
+    },
+
+    upvotes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    upvotedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true, // adds createdAt & updatedAt
   }
 );
+
+complaintSchema.index({ upvotes: -1, createdAt: -1 });
 
 module.exports = mongoose.model("Complaint", complaintSchema);

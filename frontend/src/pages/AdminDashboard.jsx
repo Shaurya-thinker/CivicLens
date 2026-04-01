@@ -76,9 +76,22 @@ export default function AdminDashboard() {
   };
 
   const handleStatusChange = async (complaintId, newStatus) => {
+    const currentComplaint = complaints.find((c) => c._id === complaintId);
+    if (!currentComplaint) return;
+
+    let reason = '';
+    const isReopen = currentComplaint.status === 'Resolved' && newStatus === 'In Progress';
+    if (isReopen) {
+      reason = window.prompt('Please provide a reason for reopening this complaint (minimum 5 characters):', '') || '';
+      if (reason.trim().length < 5) {
+        addToast('Reopening requires a reason of at least 5 characters', 'error');
+        return;
+      }
+    }
+
     setUpdatingStatus(complaintId);
     try {
-      await api.patch(`/complaints/${complaintId}/status`, { status: newStatus });
+      await api.patch(`/complaints/${complaintId}/status`, { status: newStatus, reason: reason.trim() });
       const updated = complaints.map(c => 
         c._id === complaintId ? { ...c, status: newStatus } : c
       );
@@ -115,6 +128,7 @@ export default function AdminDashboard() {
       filtered = filtered.filter(c => 
         c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -268,7 +282,7 @@ export default function AdminDashboard() {
           </svg>
           <input
             type="text"
-            placeholder="Search complaints by title, description, or category..."
+            placeholder="Search complaints by title, description, location, or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -306,6 +320,7 @@ export default function AdminDashboard() {
                   Title {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
                 <th>Category</th>
+                <th>Location</th>
                 <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                   Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
@@ -332,6 +347,9 @@ export default function AdminDashboard() {
                         {complaint.category}
                       </span>
                     </td>
+                    <td style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>
+                      {complaint.location || 'Not provided'}
+                    </td>
                     <td><StatusBadge status={complaint.status} /></td>
                     <td style={{ fontSize: 'var(--font-size-sm)', color: 'var(--neutral-medium)' }}>
                       {complaint.createdBy?.name || 'Unknown'}
@@ -357,11 +375,17 @@ export default function AdminDashboard() {
                   </tr>
                   {expandedRow === complaint._id && (
                     <tr>
-                      <td colSpan="6" style={{ background: 'var(--neutral-bg)', padding: 'var(--spacing-lg)' }}>
+                      <td colSpan="7" style={{ background: 'var(--neutral-bg)', padding: 'var(--spacing-lg)' }}>
                         <div style={{ display: 'grid', gap: 'var(--spacing-md)' }}>
                           <div>
                             <strong style={{ color: 'var(--neutral-dark)' }}>Description:</strong>
                             <p style={{ margin: '0.5rem 0 0 0', color: 'var(--neutral-medium)' }}>{complaint.description}</p>
+                          </div>
+                          <div>
+                            <strong style={{ color: 'var(--neutral-dark)' }}>Location:</strong>
+                            <p style={{ margin: '0.5rem 0 0 0', color: 'var(--neutral-medium)' }}>
+                              {complaint.location || 'Not provided'}
+                            </p>
                           </div>
                           <div style={{ display: 'flex', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
                             <div>

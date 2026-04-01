@@ -75,6 +75,14 @@ const ComplaintCard = memo(({ complaint }) => {
         {expanded ? complaint.description : truncateText(complaint.description)}
       </p>
 
+      <p style={{
+        color: 'var(--neutral-dark)',
+        fontWeight: 600,
+        marginBottom: 'var(--spacing-md)'
+      }}>
+        Location: {complaint.location || 'Not provided'}
+      </p>
+
       {!expanded && complaint.description.length > 150 && (
         <button
           onClick={(e) => {

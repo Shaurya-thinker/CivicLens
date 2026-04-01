@@ -377,6 +377,13 @@ p {
   font-weight: 800;
 }
 
+@media (min-width: 769px) {
+  .auth-card.raise-complaint-card {
+    width: 100%;
+    max-width: min(1200px, 96vw);
+  }
+}
+
 .form-group {
   margin-bottom: var(--spacing-lg);
 }

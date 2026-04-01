@@ -15,6 +15,10 @@ export default function PublicDashboard() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [itemsToShow, setItemsToShow] = useState(10);
+  const [upvotedComplaintIds, setUpvotedComplaintIds] = useState(new Set());
+  const [upvoteInFlight, setUpvoteInFlight] = useState({});
+
+  const isCitizenLoggedIn = localStorage.getItem('token') && localStorage.getItem('role') === 'citizen';
 
   const totalCount = useCountUp(stats.total, 1200);
   const resolvedCount = useCountUp(stats.resolved, 1200);
@@ -37,9 +41,15 @@ export default function PublicDashboard() {
 
   const fetchComplaints = async () => {
     try {
-      const response = await api.get('/complaints');
+      const response = await api.get('/complaints/public');
       const data = response.data.complaints || response.data;
       setComplaints(data);
+
+      if (isCitizenLoggedIn) {
+        const upvoteResponse = await api.get('/complaints/upvotes/me');
+        const ids = upvoteResponse.data?.complaintIds || [];
+        setUpvotedComplaintIds(new Set(ids));
+      }
       
       const total = data.length;
       const resolved = data.filter(c => c.status === 'Resolved').length;
@@ -60,7 +70,45 @@ export default function PublicDashboard() {
     if (statusFilter !== 'All') {
       filtered = complaints.filter(c => c.status === statusFilter);
     }
-    setDisplayedComplaints(filtered.slice(0, itemsToShow));
+
+    const prioritySorted = [...filtered].sort((a, b) => {
+      const upvoteDelta = (b.upvotes || 0) - (a.upvotes || 0);
+      if (upvoteDelta !== 0) return upvoteDelta;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    setDisplayedComplaints(prioritySorted.slice(0, itemsToShow));
+  };
+
+  const handleUpvote = async (complaintId) => {
+    if (!isCitizenLoggedIn || upvotedComplaintIds.has(complaintId) || upvoteInFlight[complaintId]) {
+      return;
+    }
+
+    setUpvoteInFlight(prev => ({ ...prev, [complaintId]: true }));
+
+    try {
+      const response = await api.post(`/complaints/${complaintId}/upvote`);
+      const nextUpvotes = response.data?.upvotes;
+
+      setComplaints(prev => prev.map(item => {
+        if (item._id !== complaintId) return item;
+        return {
+          ...item,
+          upvotes: typeof nextUpvotes === 'number' ? nextUpvotes : (item.upvotes || 0) + 1,
+        };
+      }));
+
+      setUpvotedComplaintIds(prev => {
+        const updated = new Set(prev);
+        updated.add(complaintId);
+        return updated;
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to upvote complaint');
+    } finally {
+      setUpvoteInFlight(prev => ({ ...prev, [complaintId]: false }));
+    }
   };
 
   const getMostCommonCategory = () => {
@@ -268,9 +316,15 @@ export default function PublicDashboard() {
                 <p style={{ color: 'var(--neutral-medium)', lineHeight: 1.7, marginBottom: 'var(--spacing-md)' }}>
                   {complaint.description}
                 </p>
+                <p style={{ color: 'var(--neutral-dark)', fontWeight: 600, marginBottom: 'var(--spacing-md)' }}>
+                  Location: {complaint.location || 'Not provided'}
+                </p>
                 <div className="complaint-meta">
                   <span className="category">
                     {complaint.category}
+                  </span>
+                  <span className="date" style={{ fontWeight: 700, color: 'var(--primary-main)' }}>
+                    ▲ {complaint.upvotes || 0} upvotes
                   </span>
                   <span className="date">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.25rem', verticalAlign: 'middle' }}>
@@ -285,24 +339,31 @@ export default function PublicDashboard() {
                       day: 'numeric'
                     })}
                   </span>
-                  {complaint.createdBy?.name && (
-                    <span style={{
-                      backgroundColor: 'var(--neutral-bg)',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--font-size-sm)',
-                      color: 'var(--neutral-medium)',
-                      fontWeight: 500,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {complaint.createdBy.name}
-                    </span>
+                </div>
+                <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <small style={{ color: 'var(--neutral-medium)' }}>
+                    Higher upvotes increase issue priority in this public feed.
+                  </small>
+                  {isCitizenLoggedIn ? (
+                    <button
+                      onClick={() => handleUpvote(complaint._id)}
+                      disabled={upvotedComplaintIds.has(complaint._id) || upvoteInFlight[complaint._id]}
+                      style={{
+                        padding: '0.45rem 0.9rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: 'none',
+                        background: upvotedComplaintIds.has(complaint._id) ? 'var(--neutral-lighter)' : 'var(--primary-gradient)',
+                        color: upvotedComplaintIds.has(complaint._id) ? 'var(--neutral-medium)' : 'white',
+                        fontWeight: 600,
+                        cursor: upvotedComplaintIds.has(complaint._id) ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {upvotedComplaintIds.has(complaint._id)
+                        ? 'Upvoted'
+                        : (upvoteInFlight[complaint._id] ? 'Upvoting...' : 'Upvote')}
+                    </button>
+                  ) : (
+                    <small style={{ color: 'var(--neutral-medium)' }}>Login as citizen to upvote</small>
                   )}
                 </div>
               </div>

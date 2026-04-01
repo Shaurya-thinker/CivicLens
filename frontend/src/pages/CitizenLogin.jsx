@@ -15,6 +15,8 @@ function CitizenLogin() {
   const [savedEmail, setSavedEmail] = useLocalStorage('savedEmail', '');
   const [focusedField, setFocusedField] = useState('');
   const [validFields, setValidFields] = useState({ email: false, password: false });
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   useEffect(() => {
     if (rememberEmail && savedEmail) {
@@ -39,6 +41,7 @@ function CitizenLogin() {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
     setError("");
+    setResendMessage('');
     
     if (name === 'email') {
       setValidFields(prev => ({ ...prev, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) }));
@@ -54,7 +57,7 @@ function CitizenLogin() {
     setLoading(true);
 
     try {
-      const { data } = await API.post("/auth/login", form);
+      const { data } = await API.post("/auth/login/citizen", form);
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.role);
       
@@ -69,6 +72,26 @@ function CitizenLogin() {
       setLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    if (!form.email || resendLoading) {
+      return;
+    }
+
+    setResendLoading(true);
+    setResendMessage('');
+
+    try {
+      const response = await API.post('/auth/resend-verification', { email: form.email });
+      setResendMessage(response.data?.message || 'Verification email sent successfully');
+    } catch (err) {
+      setResendMessage(err.response?.data?.message || 'Failed to resend verification email');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const canResendVerification = error.toLowerCase().includes('verify your email');
 
   const isFormValid = validFields.email && validFields.password;
 
@@ -111,6 +134,31 @@ function CitizenLogin() {
               <path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             {error}
+            {canResendVerification && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendLoading || !form.email}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--primary-main)',
+                    fontWeight: 700,
+                    cursor: resendLoading ? 'not-allowed' : 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {resendLoading ? 'Sending verification email...' : 'Resend verification email'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {resendMessage && (
+          <div className="success-message" style={{ animation: 'slideDown 0.3s ease-out' }}>
+            {resendMessage}
           </div>
         )}
 

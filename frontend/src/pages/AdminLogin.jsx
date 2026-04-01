@@ -31,15 +31,7 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', { email, password });
-      
-      if (response.data.user.role !== 'admin') {
-        setError('Access denied. Admin credentials required.');
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setLoading(false);
-        return;
-      }
+      const response = await api.post('/auth/login/admin', { email, password });
       
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('role', response.data.user.role);
