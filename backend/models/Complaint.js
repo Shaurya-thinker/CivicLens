@@ -19,6 +19,25 @@ const complaintSchema = new mongoose.Schema(
       trim: true,
     },
 
+    locationLat: {
+      type: Number,
+      default: null,
+      min: -90,
+      max: 90,
+    },
+
+    locationLng: {
+      type: Number,
+      default: null,
+      min: -180,
+      max: 180,
+    },
+
+    images: {
+      type: [String],
+      default: [],
+    },
+
     category: {
       type: String,
       required: true,

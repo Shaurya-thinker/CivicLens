@@ -6,6 +6,18 @@ import Confetti from "../components/Confetti";
 import ComplaintAnimatedBg from "../components/ComplaintAnimatedBg";
 
 const MAX_DESCRIPTION = 500;
+const EARTH_RADIUS_KM = 6371;
+const MAX_IMAGE_COUNT = 3;
+const MAX_IMAGE_SIZE_MB = 2;
+const DEFAULT_FORM = {
+  title: "",
+  location: "",
+  locationLat: null,
+  locationLng: null,
+  description: "",
+  category: "",
+  images: [],
+};
 
 export default function RaiseComplaint() {
   const navigate = useNavigate();
@@ -13,7 +25,17 @@ export default function RaiseComplaint() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(() => {
     const draft = localStorage.getItem('complaintDraft');
-    return draft ? JSON.parse(draft) : { title: "", location: "", description: "", category: "" };
+    if (!draft) return DEFAULT_FORM;
+    try {
+      const parsed = JSON.parse(draft);
+      return {
+        ...DEFAULT_FORM,
+        ...parsed,
+        images: Array.isArray(parsed?.images) ? parsed.images : [],
+      };
+    } catch {
+      return DEFAULT_FORM;
+    }
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -21,6 +43,9 @@ export default function RaiseComplaint() {
   const [draftSaved, setDraftSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const [nearbyMatches, setNearbyMatches] = useState([]);
 
   const categories = [
     { value: "Road", icon: "🛣️", label: "Road Issues", keywords: ['road', 'street', 'pothole', 'pavement', 'highway'] },
@@ -46,7 +71,8 @@ export default function RaiseComplaint() {
     if (form.title || form.location || form.description || form.category) {
       setIsDirty(true);
       const timer = setTimeout(() => {
-        localStorage.setItem('complaintDraft', JSON.stringify(form));
+        const { images, ...draftPayload } = form;
+        localStorage.setItem('complaintDraft', JSON.stringify(draftPayload));
         setDraftSaved(true);
         setTimeout(() => setDraftSaved(false), 2000);
       }, 1000);
@@ -63,6 +89,18 @@ export default function RaiseComplaint() {
     }
     return '';
   }, []);
+
+  const toRad = (value) => (value * Math.PI) / 180;
+
+  const getDistanceKm = (lat1, lng1, lat2, lng2) => {
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return EARTH_RADIUS_KM * c;
+  };
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -85,6 +123,89 @@ export default function RaiseComplaint() {
       return rest;
     });
   }, [suggestCategory, addToast]);
+
+  const fetchCurrentLocation = async () => {
+    if (!navigator.geolocation || fetchingLocation) {
+      return;
+    }
+
+    setFetchingLocation(true);
+    setServerError("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        setLocationAccuracy(accuracy || null);
+
+        try {
+          const reverse = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const reverseData = await reverse.json();
+          const resolvedAddress = reverseData?.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+          setForm((prev) => ({
+            ...prev,
+            location: resolvedAddress,
+            locationLat: Number(latitude.toFixed(6)),
+            locationLng: Number(longitude.toFixed(6)),
+          }));
+          addToast('Current location detected', 'success');
+        } catch (err) {
+          setForm((prev) => ({
+            ...prev,
+            location: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            locationLat: Number(latitude.toFixed(6)),
+            locationLng: Number(longitude.toFixed(6)),
+          }));
+          addToast('Location captured, but readable address was not resolved', 'info');
+        } finally {
+          setFetchingLocation(false);
+        }
+      },
+      (error) => {
+        setFetchingLocation(false);
+        addToast(error.message || 'Unable to fetch current location', 'error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 120000,
+      }
+    );
+  };
+
+  const findNearbyMatches = useCallback(async () => {
+    if (!form.category || !form.locationLat || !form.locationLng) {
+      setNearbyMatches([]);
+      return;
+    }
+
+    try {
+      const response = await api.get('/complaints/public?limit=100');
+      const allComplaints = response.data?.complaints || [];
+
+      const matches = allComplaints
+        .filter((item) => item.category === form.category && item.locationLat != null && item.locationLng != null)
+        .map((item) => ({
+          ...item,
+          distanceKm: getDistanceKm(form.locationLat, form.locationLng, item.locationLat, item.locationLng),
+        }))
+        .filter((item) => item.distanceKm <= 1)
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, 3);
+
+      setNearbyMatches(matches);
+    } catch {
+      setNearbyMatches([]);
+    }
+  }, [form.category, form.locationLat, form.locationLng]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      findNearbyMatches();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [findNearbyMatches]);
 
   const validateStep1 = () => {
     const newErrors = {};
@@ -112,8 +233,64 @@ export default function RaiseComplaint() {
     } else if (form.description.trim().length < 10) {
       newErrors.description = "Description must be at least 10 characters";
     }
+    if (!Array.isArray(form.images) || form.images.length === 0) {
+      newErrors.images = "At least one photo is required";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_IMAGE_COUNT - (Array.isArray(form.images) ? form.images.length : 0);
+    const acceptedFiles = files.slice(0, remainingSlots);
+
+    if (files.length > remainingSlots) {
+      addToast(`Only ${MAX_IMAGE_COUNT} images are allowed`, 'info');
+    }
+
+    try {
+      const imagePromises = acceptedFiles.map((file) => new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) {
+          reject(new Error('Only image files are allowed'));
+          return;
+        }
+
+        if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+          reject(new Error(`Each image must be below ${MAX_IMAGE_SIZE_MB}MB`));
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read image'));
+        reader.readAsDataURL(file);
+      }));
+
+      const uploadedImages = await Promise.all(imagePromises);
+      setForm((prev) => ({
+        ...prev,
+        images: [...(Array.isArray(prev.images) ? prev.images : []), ...uploadedImages],
+      }));
+
+      setErrors((prev) => {
+        const { images, ...rest } = prev;
+        return rest;
+      });
+    } catch (err) {
+      addToast(err.message || 'Failed to process image', 'error');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const removeImage = (indexToRemove) => {
+    setForm((prev) => ({
+      ...prev,
+      images: (Array.isArray(prev.images) ? prev.images : []).filter((_, index) => index !== indexToRemove),
+    }));
   };
 
   const handleNext = () => {
@@ -253,7 +430,53 @@ export default function RaiseComplaint() {
                       {errors.location}
                     </small>
                   )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={fetchCurrentLocation}
+                      disabled={fetchingLocation}
+                      className="btn-filter"
+                      style={{ padding: '0.45rem 0.8rem' }}
+                    >
+                      {fetchingLocation ? 'Detecting location...' : 'Use my current location'}
+                    </button>
+                    {form.locationLat != null && form.locationLng != null && (
+                      <small style={{ color: 'var(--neutral-medium)' }}>
+                        GPS: {form.locationLat}, {form.locationLng}
+                        {locationAccuracy ? ` (±${Math.round(locationAccuracy)}m)` : ''}
+                      </small>
+                    )}
+                  </div>
                 </div>
+
+                {nearbyMatches.length > 0 && (
+                  <div style={{
+                    background: 'var(--warning-bg)',
+                    border: '1px solid var(--warning)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: 'var(--spacing-md)',
+                    marginBottom: 'var(--spacing-lg)'
+                  }}>
+                    <p style={{ color: 'var(--neutral-dark)', margin: 0, fontWeight: 700 }}>
+                      Similar complaints nearby. Consider upvoting instead of creating a duplicate.
+                    </p>
+                    <div style={{ marginTop: '0.5rem', display: 'grid', gap: '0.35rem' }}>
+                      {nearbyMatches.map((item) => (
+                        <small key={item._id} style={{ color: 'var(--neutral-dark)' }}>
+                          • {item.title} ({item.distanceKm.toFixed(2)} km away, {item.upvotes || 0} upvotes)
+                        </small>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-filter"
+                      onClick={() => navigate('/')}
+                      style={{ marginTop: '0.75rem', padding: '0.45rem 0.8rem' }}
+                    >
+                      View & upvote on public dashboard
+                    </button>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label htmlFor="category">Category</label>
@@ -306,6 +529,60 @@ export default function RaiseComplaint() {
               </div>
             ) : (
               <div style={{ animation: 'slideInFromRight 0.3s ease-out' }}>
+                <div className="form-group">
+                  <label htmlFor="images">Complaint Photos</label>
+                  <input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={(Array.isArray(form.images) ? form.images.length : 0) >= MAX_IMAGE_COUNT}
+                  />
+                  <small style={{ color: 'var(--neutral-medium)', display: 'block', marginTop: '0.35rem' }}>
+                    Upload up to {MAX_IMAGE_COUNT} images ({MAX_IMAGE_SIZE_MB}MB each max)
+                  </small>
+                  {errors.images && (
+                    <small style={{ color: 'var(--error)', display: 'block', marginTop: '0.25rem' }}>
+                      {errors.images}
+                    </small>
+                  )}
+
+                  {(Array.isArray(form.images) ? form.images.length : 0) > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '0.5rem', marginTop: '0.75rem' }}>
+                      {(Array.isArray(form.images) ? form.images : []).map((img, index) => (
+                        <div key={`upload-preview-${index}`} style={{ position: 'relative' }}>
+                          <img
+                            src={img}
+                            alt={`Complaint upload ${index + 1}`}
+                            style={{ width: '100%', height: '90px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-lighter)' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            style={{
+                              position: 'absolute',
+                              top: '6px',
+                              right: '6px',
+                              border: 'none',
+                              borderRadius: '999px',
+                              width: '22px',
+                              height: '22px',
+                              background: 'rgba(0,0,0,0.65)',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              lineHeight: 1,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="description">Description</label>
                   <textarea
@@ -411,6 +688,18 @@ export default function RaiseComplaint() {
               <p style={{ color: 'var(--neutral-medium)', lineHeight: 1.7, marginBottom: 'var(--spacing-md)' }}>
                 {form.description || 'Your detailed description will appear here...'}
               </p>
+              {(Array.isArray(form.images) ? form.images.length : 0) > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem', marginBottom: 'var(--spacing-md)' }}>
+                  {(Array.isArray(form.images) ? form.images : []).map((img, index) => (
+                    <img
+                      key={`preview-image-${index}`}
+                      src={img}
+                      alt={`Preview ${index + 1}`}
+                      style={{ width: '100%', height: '95px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-lighter)' }}
+                    />
+                  ))}
+                </div>
+              )}
               <div className="complaint-meta">
                 <span className="category">{form.category || 'Category'}</span>
                 <span className="date">

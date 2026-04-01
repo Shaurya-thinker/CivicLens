@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import Filters from '../components/Filters';
@@ -7,6 +7,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import { useToast } from '../components/Toast';
 import useRipple from '../hooks/useRipple';
 import DashboardAnimatedBg from '../components/DashboardAnimatedBg';
+import ImageLightbox from '../components/ImageLightbox';
 
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -19,7 +20,7 @@ export default function AdminDashboard() {
   const [expandedRow, setExpandedRow] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [isSticky, setIsSticky] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
   const { addToast } = useToast();
   const { addRipple, rippleElements } = useRipple();
 
@@ -35,12 +36,6 @@ export default function AdminDashboard() {
       const filters = JSON.parse(savedFilters);
       handleFilter(filters);
     }
-
-    const handleScroll = () => {
-      setIsSticky(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -312,29 +307,29 @@ export default function AdminDashboard() {
           <p>Try adjusting your filters or search</p>
         </div>
       ) : (
-        <div className="complaints-table">
+        <div className="complaints-table complaints-table-scroll">
           <table>
-            <thead style={{ position: isSticky ? 'sticky' : 'relative', top: isSticky ? '70px' : '0', zIndex: 10, boxShadow: isSticky ? 'var(--shadow-md)' : 'none' }}>
+            <thead>
               <tr>
                 <th onClick={() => handleSort('title')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  Title {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  Title
                 </th>
                 <th>Category</th>
                 <th>Location</th>
                 <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  Status
                 </th>
                 <th>Created By</th>
                 <th onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  Date {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  Date
                 </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {sortedComplaints.map(complaint => (
-                <>
-                  <tr key={complaint._id} onClick={() => setExpandedRow(expandedRow === complaint._id ? null : complaint._id)} style={{ cursor: 'pointer' }}>
+                <Fragment key={complaint._id}>
+                  <tr onClick={() => setExpandedRow(expandedRow === complaint._id ? null : complaint._id)} style={{ cursor: 'pointer' }}>
                     <td style={{ fontWeight: 500, color: 'var(--neutral-dark)' }}>{complaint.title}</td>
                     <td>
                       <span style={{
@@ -381,6 +376,25 @@ export default function AdminDashboard() {
                             <strong style={{ color: 'var(--neutral-dark)' }}>Description:</strong>
                             <p style={{ margin: '0.5rem 0 0 0', color: 'var(--neutral-medium)' }}>{complaint.description}</p>
                           </div>
+                          {Array.isArray(complaint.images) && complaint.images.length > 0 && (
+                            <div>
+                              <strong style={{ color: 'var(--neutral-dark)' }}>Photos:</strong>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                {complaint.images.map((img, index) => (
+                                  <img
+                                    key={`${complaint._id}-admin-photo-${index}`}
+                                    src={img}
+                                    alt={`Complaint photo ${index + 1}`}
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setPreviewImage(img);
+                                    }}
+                                    style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-lighter)', cursor: 'zoom-in' }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <div>
                             <strong style={{ color: 'var(--neutral-dark)' }}>Location:</strong>
                             <p style={{ margin: '0.5rem 0 0 0', color: 'var(--neutral-medium)' }}>
@@ -421,7 +435,7 @@ export default function AdminDashboard() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -438,6 +452,14 @@ export default function AdminDashboard() {
       }}>
         <p><strong style={{ color: 'var(--neutral-dark)' }}>Summary:</strong> {stats.total} total complaints with {stats.resolved} resolved and {stats.pending} pending</p>
       </div>
+
+      {previewImage && (
+        <ImageLightbox
+          imageSrc={previewImage}
+          alt="Admin complaint photo preview"
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
       </div>
     </div>
   );

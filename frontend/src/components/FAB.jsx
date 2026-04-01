@@ -4,8 +4,9 @@ export default function FAB() {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
 
-  if (!token || location.pathname === '/raise') return null;
+  if (!token || role === 'admin' || location.pathname === '/raise') return null;
 
   return (
     <button

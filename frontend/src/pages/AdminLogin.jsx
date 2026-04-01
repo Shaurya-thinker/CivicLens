@@ -105,6 +105,7 @@ export default function AdminLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
                 required
+                autoComplete="email"
                 style={{ 
                   paddingLeft: '40px',
                   transition: 'all 0.3s ease'
@@ -130,6 +131,7 @@ export default function AdminLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                autoComplete="current-password"
                 style={{ 
                   paddingLeft: '40px', 
                   paddingRight: '40px',

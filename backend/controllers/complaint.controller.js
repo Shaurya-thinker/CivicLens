@@ -24,7 +24,7 @@ const ensureCitizen = (req, res) => {
 // Input validation helper
 const validateComplaintInput = (data) => {
   const errors = [];
-  const { title, description, location, category } = data;
+  const { title, description, location, category, locationLat, locationLng, images } = data;
   
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
     errors.push('Title is required and must be a valid string');
@@ -40,6 +40,38 @@ const validateComplaintInput = (data) => {
   
   if (!category || !VALID_CATEGORIES.includes(category)) {
     errors.push(`Category must be one of: ${VALID_CATEGORIES.join(', ')}`);
+  }
+
+  if (!Array.isArray(images) || images.length === 0) {
+    errors.push('At least one complaint image is required');
+  } else {
+    if (images.length > 3) {
+      errors.push('You can upload up to 3 images per complaint');
+    }
+
+    const invalidImage = images.find((img) => typeof img !== 'string' || !img.startsWith('data:image/'));
+    if (invalidImage) {
+      errors.push('Images must be valid image files');
+    }
+  }
+
+  const hasLat = locationLat !== undefined && locationLat !== null && locationLat !== "";
+  const hasLng = locationLng !== undefined && locationLng !== null && locationLng !== "";
+  if (hasLat !== hasLng) {
+    errors.push('Both latitude and longitude are required when sharing exact location');
+  }
+
+  if (hasLat && hasLng) {
+    const lat = Number(locationLat);
+    const lng = Number(locationLng);
+
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      errors.push('Latitude must be a valid number between -90 and 90');
+    }
+
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      errors.push('Longitude must be a valid number between -180 and 180');
+    }
   }
   
   return errors;
@@ -58,6 +90,9 @@ const getPublicComplaints = async (req, res) => {
       title: 1,
       description: 1,
       location: 1,
+      locationLat: 1,
+      locationLng: 1,
+      images: 1,
       category: 1,
       status: 1,
       upvotes: 1,
@@ -91,10 +126,10 @@ const getPublicComplaints = async (req, res) => {
  */
 const createComplaint = async (req, res) => {
   try {
-    const { title, description, location, category } = req.body;
+    const { title, description, location, category, locationLat, locationLng, images } = req.body;
     
     // Validate input
-    const errors = validateComplaintInput({ title, description, location, category });
+    const errors = validateComplaintInput({ title, description, location, category, locationLat, locationLng, images });
     if (errors.length > 0) {
       return res.status(400).json({
         success: false,
@@ -107,6 +142,9 @@ const createComplaint = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       location: location.trim(),
+      locationLat: locationLat !== undefined && locationLat !== null && locationLat !== "" ? Number(locationLat) : null,
+      locationLng: locationLng !== undefined && locationLng !== null && locationLng !== "" ? Number(locationLng) : null,
+      images,
       category,
       createdBy: req.user.id,
     });

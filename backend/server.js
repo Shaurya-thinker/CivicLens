@@ -4,12 +4,63 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const dotenv = require("dotenv");
+const bcrypt = require("bcryptjs");
 const authRoutes = require("./routes/auth.routes");
 const complaintRoutes = require("./routes/complaint.routes");
+const User = require("./models/User");
 
 dotenv.config();
 
 const app = express();
+
+const DEMO_ADMIN = {
+  email: "admin@example.com",
+  password: "password123",
+  name: "demo admin",
+};
+
+const seedDemoAdmin = async () => {
+  const existingAdmin = await User.findOne({ email: DEMO_ADMIN.email.toLowerCase() });
+
+  if (existingAdmin) {
+    let didUpdate = false;
+
+    if (existingAdmin.role !== "admin") {
+      existingAdmin.role = "admin";
+      didUpdate = true;
+    }
+
+    if (!existingAdmin.isEmailVerified) {
+      existingAdmin.isEmailVerified = true;
+      existingAdmin.emailVerificationToken = null;
+      existingAdmin.emailVerificationExpires = null;
+      didUpdate = true;
+    }
+
+    if (didUpdate) {
+      await existingAdmin.save();
+      console.log("🔧 Demo admin account updated");
+    } else {
+      console.log("ℹ️ Demo admin account already present");
+    }
+
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(DEMO_ADMIN.password, 12);
+
+  await User.create({
+    name: DEMO_ADMIN.name,
+    email: DEMO_ADMIN.email,
+    password: hashedPassword,
+    role: "admin",
+    isEmailVerified: true,
+    emailVerificationToken: null,
+    emailVerificationExpires: null,
+  });
+
+  console.log("✅ Demo admin account seeded");
+};
 
 // Security middleware
 app.use(helmet());
@@ -164,8 +215,11 @@ const mongoOptions = {
 };
 
 mongoose.connect(MONGO_URI, mongoOptions)
-  .then(() => {
+  .then(async () => {
     console.log("✅ MongoDB Connected");
+
+    await seedDemoAdmin();
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

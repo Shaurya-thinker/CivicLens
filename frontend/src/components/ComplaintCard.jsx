@@ -1,9 +1,11 @@
 import { useState, memo, useCallback } from 'react';
 import StatusBadge from "./StatusBadge";
 import { useToast } from './Toast';
+import ImageLightbox from './ImageLightbox';
 
 const ComplaintCard = memo(({ complaint }) => {
   const [expanded, setExpanded] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
   const { addToast } = useToast();
 
   const copyId = useCallback(() => {
@@ -74,6 +76,23 @@ const ComplaintCard = memo(({ complaint }) => {
       }}>
         {expanded ? complaint.description : truncateText(complaint.description)}
       </p>
+
+      {Array.isArray(complaint.images) && complaint.images.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem', marginBottom: 'var(--spacing-md)' }}>
+          {complaint.images.slice(0, expanded ? complaint.images.length : 2).map((img, index) => (
+            <img
+              key={`${complaint._id}-evidence-${index}`}
+              src={img}
+              alt={`Complaint evidence ${index + 1}`}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setPreviewImage(img);
+              }}
+              style={{ width: '100%', height: '90px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-lighter)', cursor: 'zoom-in' }}
+            />
+          ))}
+        </div>
+      )}
 
       <p style={{
         color: 'var(--neutral-dark)',
@@ -162,6 +181,14 @@ const ComplaintCard = memo(({ complaint }) => {
           {getRelativeTime(complaint.createdAt)}
         </span>
       </div>
+
+      {previewImage && (
+        <ImageLightbox
+          imageSrc={previewImage}
+          alt="Complaint evidence preview"
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
     </div>
   );
 });

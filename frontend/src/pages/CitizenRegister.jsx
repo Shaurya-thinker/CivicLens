@@ -145,7 +145,7 @@ function CitizenRegister() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }}>
               <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Registration successful! We sent a verification email. Please verify before logging in.
+            Registration successful! You can now log in.
           </div>
         )}
 

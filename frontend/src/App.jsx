@@ -24,6 +24,13 @@ function AdminRoute({ children }) {
   return role === 'admin' ? children : <Navigate to="/" replace />;
 }
 
+function CitizenRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (!token) return <Navigate to="/login" replace />;
+  return role === 'citizen' ? children : <Navigate to="/admin/dashboard" replace />;
+}
+
 function App() {
   return (
     <ToastProvider>
@@ -34,7 +41,7 @@ function App() {
         <Route path="/login" element={<CitizenLogin />} />
         <Route path="/register" element={<CitizenRegister />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/raise" element={<ProtectedRoute><RaiseComplaint /></ProtectedRoute>} />
+        <Route path="/raise" element={<CitizenRoute><RaiseComplaint /></CitizenRoute>} />
         <Route path="/my-complaints" element={<ProtectedRoute><MyComplaints /></ProtectedRoute>} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

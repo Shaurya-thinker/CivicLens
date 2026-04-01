@@ -6,6 +6,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import useTilt from '../hooks/useTilt';
 import TypingText from '../components/TypingText';
 import DashboardAnimatedBg from '../components/DashboardAnimatedBg';
+import ImageLightbox from '../components/ImageLightbox';
 
 export default function PublicDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -17,8 +18,21 @@ export default function PublicDashboard() {
   const [itemsToShow, setItemsToShow] = useState(10);
   const [upvotedComplaintIds, setUpvotedComplaintIds] = useState(new Set());
   const [upvoteInFlight, setUpvoteInFlight] = useState({});
+  const [nearMeEnabled, setNearMeEnabled] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [myLocation, setMyLocation] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const isCitizenLoggedIn = localStorage.getItem('token') && localStorage.getItem('role') === 'citizen';
+
+  const toRad = (value) => (value * Math.PI) / 180;
+  const getDistanceKm = (lat1, lng1, lat2, lng2) => {
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  };
 
   const totalCount = useCountUp(stats.total, 1200);
   const resolvedCount = useCountUp(stats.resolved, 1200);
@@ -71,13 +85,58 @@ export default function PublicDashboard() {
       filtered = complaints.filter(c => c.status === statusFilter);
     }
 
-    const prioritySorted = [...filtered].sort((a, b) => {
-      const upvoteDelta = (b.upvotes || 0) - (a.upvotes || 0);
-      if (upvoteDelta !== 0) return upvoteDelta;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
+    let prioritized = [...filtered];
 
-    setDisplayedComplaints(prioritySorted.slice(0, itemsToShow));
+    if (nearMeEnabled && myLocation) {
+      prioritized = prioritized
+        .map((item) => {
+          if (item.locationLat == null || item.locationLng == null) {
+            return { ...item, distanceKm: Number.POSITIVE_INFINITY };
+          }
+
+          return {
+            ...item,
+            distanceKm: getDistanceKm(myLocation.lat, myLocation.lng, item.locationLat, item.locationLng),
+          };
+        })
+        .sort((a, b) => {
+          if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
+          const upvoteDelta = (b.upvotes || 0) - (a.upvotes || 0);
+          if (upvoteDelta !== 0) return upvoteDelta;
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+    } else {
+      prioritized = prioritized.sort((a, b) => {
+        const upvoteDelta = (b.upvotes || 0) - (a.upvotes || 0);
+        if (upvoteDelta !== 0) return upvoteDelta;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    }
+
+    setDisplayedComplaints(prioritized.slice(0, itemsToShow));
+  };
+
+  const enableNearMe = () => {
+    if (!navigator.geolocation || detectingLocation) {
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setMyLocation({
+          lat: Number(position.coords.latitude.toFixed(6)),
+          lng: Number(position.coords.longitude.toFixed(6)),
+        });
+        setNearMeEnabled(true);
+        setDetectingLocation(false);
+      },
+      () => {
+        setError('Unable to access your location for near-me sorting');
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
+    );
   };
 
   const handleUpvote = async (complaintId) => {
@@ -262,6 +321,24 @@ export default function PublicDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
           <h2 style={{ margin: 0 }}>Recent Complaints</h2>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={nearMeEnabled ? () => setNearMeEnabled(false) : enableNearMe}
+              disabled={detectingLocation}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: 'var(--radius-lg)',
+                border: nearMeEnabled ? 'none' : '2px solid var(--neutral-lighter)',
+                background: nearMeEnabled ? 'var(--primary-gradient)' : 'var(--white)',
+                color: nearMeEnabled ? 'white' : 'var(--neutral-dark)',
+                cursor: 'pointer',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 600,
+              }}
+            >
+              {detectingLocation ? 'Detecting location...' : (nearMeEnabled ? 'Near Me On' : 'Sort Near Me')}
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {['All', 'Pending', 'In Progress', 'Resolved'].map(status => (
               <button
                 key={status}
@@ -316,9 +393,27 @@ export default function PublicDashboard() {
                 <p style={{ color: 'var(--neutral-medium)', lineHeight: 1.7, marginBottom: 'var(--spacing-md)' }}>
                   {complaint.description}
                 </p>
+                {Array.isArray(complaint.images) && complaint.images.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', marginBottom: 'var(--spacing-md)' }}>
+                    {complaint.images.slice(0, 3).map((img, index) => (
+                      <img
+                        key={`${complaint._id}-img-${index}`}
+                        src={img}
+                        alt={`Complaint evidence ${index + 1}`}
+                        onDoubleClick={() => setPreviewImage(img)}
+                        style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-lighter)', cursor: 'zoom-in' }}
+                      />
+                    ))}
+                  </div>
+                )}
                 <p style={{ color: 'var(--neutral-dark)', fontWeight: 600, marginBottom: 'var(--spacing-md)' }}>
                   Location: {complaint.location || 'Not provided'}
                 </p>
+                {nearMeEnabled && Number.isFinite(complaint.distanceKm) && (
+                  <p style={{ color: 'var(--status-progress)', fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>
+                    Distance: {complaint.distanceKm.toFixed(2)} km away
+                  </p>
+                )}
                 <div className="complaint-meta">
                   <span className="category">
                     {complaint.category}
@@ -407,6 +502,14 @@ export default function PublicDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {previewImage && (
+        <ImageLightbox
+          imageSrc={previewImage}
+          alt="Public complaint evidence preview"
+          onClose={() => setPreviewImage(null)}
+        />
       )}
       </div>
     </div>

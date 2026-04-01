@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const { sendVerificationEmail } = require("../utils/email");
 
 const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
+const EMAIL_VERIFICATION_REQUIRED = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
 const createEmailVerificationToken = () => {
   const rawToken = crypto.randomBytes(32).toString("hex");
@@ -107,7 +108,9 @@ exports.register = async (req, res) => {
     }
 
     res.status(201).json({
-      message: "Registration successful. Please verify your email before logging in.",
+      message: EMAIL_VERIFICATION_REQUIRED
+        ? "Registration successful. Please verify your email before logging in."
+        : "Registration successful. You can now log in.",
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -147,7 +150,7 @@ const performLogin = async (email, password, requireRole = null) => {
     throw { status: 400, message: "Invalid credentials" };
   }
 
-  if (!user.isEmailVerified) {
+  if (EMAIL_VERIFICATION_REQUIRED && !user.isEmailVerified) {
     throw {
       status: 403,
       message: "Please verify your email address before logging in.",
