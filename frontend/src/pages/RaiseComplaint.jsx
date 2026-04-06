@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDropzone } from 'react-dropzone';
 import api from "../services/api";
 import { useToast } from "../components/Toast";
 import Confetti from "../components/Confetti";
@@ -46,6 +47,8 @@ export default function RaiseComplaint() {
   const [fetchingLocation, setFetchingLocation] = useState(false);
   const [locationAccuracy, setLocationAccuracy] = useState(null);
   const [nearbyMatches, setNearbyMatches] = useState([]);
+  const [compressing, setCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
 
   const categories = [
     { value: "Road", icon: "🛣️", label: "Road Issues", keywords: ['road', 'street', 'pothole', 'pavement', 'highway'] },
@@ -240,19 +243,28 @@ export default function RaiseComplaint() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  const onDrop = useCallback(async (acceptedFiles) => {
+    if (acceptedFiles.length === 0) return;
 
     const remainingSlots = MAX_IMAGE_COUNT - (Array.isArray(form.images) ? form.images.length : 0);
-    const acceptedFiles = files.slice(0, remainingSlots);
+    const filesToProcess = acceptedFiles.slice(0, remainingSlots);
 
-    if (files.length > remainingSlots) {
+    if (acceptedFiles.length > remainingSlots) {
       addToast(`Only ${MAX_IMAGE_COUNT} images are allowed`, 'info');
     }
 
+    setCompressing(true);
+    setCompressionProgress(0);
+
+    const interval = setInterval(() => {
+      setCompressionProgress(prev => {
+        if (prev >= 90) return 90;
+        return prev + 15;
+      });
+    }, 100);
+
     try {
-      const imagePromises = acceptedFiles.map((file) => new Promise((resolve, reject) => {
+      const imagePromises = filesToProcess.map((file) => new Promise((resolve, reject) => {
         if (!file.type.startsWith('image/')) {
           reject(new Error('Only image files are allowed'));
           return;
@@ -270,21 +282,38 @@ export default function RaiseComplaint() {
       }));
 
       const uploadedImages = await Promise.all(imagePromises);
-      setForm((prev) => ({
-        ...prev,
-        images: [...(Array.isArray(prev.images) ? prev.images : []), ...uploadedImages],
-      }));
+      
+      clearInterval(interval);
+      setCompressionProgress(100);
+      
+      setTimeout(() => {
+        setForm((prev) => ({
+          ...prev,
+          images: [...(Array.isArray(prev.images) ? prev.images : []), ...uploadedImages],
+        }));
 
-      setErrors((prev) => {
-        const { images, ...rest } = prev;
-        return rest;
-      });
+        setErrors((prev) => {
+          const { images, ...rest } = prev;
+          return rest;
+        });
+        setCompressing(false);
+      }, 300);
+      
     } catch (err) {
+      clearInterval(interval);
+      setCompressing(false);
       addToast(err.message || 'Failed to process image', 'error');
-    } finally {
-      e.target.value = '';
     }
-  };
+  }, [form.images, addToast]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+    },
+    maxFiles: MAX_IMAGE_COUNT,
+    disabled: (Array.isArray(form.images) ? form.images.length : 0) >= MAX_IMAGE_COUNT || compressing
+  });
 
   const removeImage = (indexToRemove) => {
     setForm((prev) => ({
@@ -530,18 +559,45 @@ export default function RaiseComplaint() {
             ) : (
               <div style={{ animation: 'slideInFromRight 0.3s ease-out' }}>
                 <div className="form-group">
-                  <label htmlFor="images">Complaint Photos</label>
-                  <input
-                    id="images"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    disabled={(Array.isArray(form.images) ? form.images.length : 0) >= MAX_IMAGE_COUNT}
-                  />
-                  <small style={{ color: 'var(--neutral-medium)', display: 'block', marginTop: '0.35rem' }}>
-                    Upload up to {MAX_IMAGE_COUNT} images ({MAX_IMAGE_SIZE_MB}MB each max)
-                  </small>
+                  <label>Complaint Photos</label>
+                  <div 
+                    {...getRootProps()} 
+                    style={{
+                      border: `2px dashed ${isDragActive ? 'var(--primary-main)' : 'var(--neutral-light)'}`,
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '2rem',
+                      textAlign: 'center',
+                      background: isDragActive ? 'rgba(102, 126, 234, 0.05)' : 'var(--neutral-bg)',
+                      cursor: (Array.isArray(form.images) ? form.images.length : 0) >= MAX_IMAGE_COUNT || compressing ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s ease',
+                      opacity: (Array.isArray(form.images) ? form.images.length : 0) >= MAX_IMAGE_COUNT ? 0.5 : 1
+                    }}
+                  >
+                    <input {...getInputProps()} />
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: isDragActive ? 'var(--primary-main)' : 'var(--neutral-medium)', marginBottom: '1rem' }}>
+                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 21.0391 3 20.5304 3 20V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {isDragActive ? (
+                      <p style={{ color: 'var(--primary-main)', fontWeight: 600, margin: 0 }}>Drop images here...</p>
+                    ) : (
+                      <p style={{ color: 'var(--neutral-dark)', fontWeight: 500, margin: 0 }}>Drag & drop images here, or click to select</p>
+                    )}
+                    <small style={{ color: 'var(--neutral-medium)', display: 'block', marginTop: '0.5rem' }}>
+                      {(Array.isArray(form.images) ? form.images.length : 0)} of {MAX_IMAGE_COUNT} uploaded ({MAX_IMAGE_SIZE_MB}MB each max)
+                    </small>
+                  </div>
+                  
+                  {compressing && (
+                    <div style={{ marginTop: '1rem', animation: 'fadeIn 0.3s' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <small style={{ color: 'var(--primary-main)', fontWeight: 600 }}>Compressing & Processing...</small>
+                        <small style={{ color: 'var(--primary-main)' }}>{compressionProgress}%</small>
+                      </div>
+                      <div style={{ height: '6px', background: 'var(--neutral-lighter)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${compressionProgress}%`, background: 'var(--primary-gradient)', transition: 'width 0.2s ease-out' }} />
+                      </div>
+                    </div>
+                  )}
                   {errors.images && (
                     <small style={{ color: 'var(--error)', display: 'block', marginTop: '0.25rem' }}>
                       {errors.images}

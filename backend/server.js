@@ -5,6 +5,8 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
+const http = require("http");
+const { Server } = require("socket.io");
 const authRoutes = require("./routes/auth.routes");
 const complaintRoutes = require("./routes/complaint.routes");
 const User = require("./models/User");
@@ -12,6 +14,25 @@ const User = require("./models/User");
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
+  }
+});
+
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+io.on("connection", (socket) => {
+  console.log("⚡ Socket Client connected:", socket.id);
+  socket.on("disconnect", () => console.log("🔌 Socket Client disconnected:", socket.id));
+});
 
 const DEMO_ADMIN = {
   email: "admin@example.com",
@@ -220,9 +241,10 @@ mongoose.connect(MONGO_URI, mongoOptions)
 
     await seedDemoAdmin();
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`⚡ WebSocket Server attached`);
     });
   })
   .catch((err) => {

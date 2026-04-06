@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import SkeletonCard from '../components/SkeletonCard';
@@ -7,6 +8,7 @@ import useTilt from '../hooks/useTilt';
 import TypingText from '../components/TypingText';
 import DashboardAnimatedBg from '../components/DashboardAnimatedBg';
 import ImageLightbox from '../components/ImageLightbox';
+import { socket } from '../services/socket';
 
 export default function PublicDashboard() {
   const [complaints, setComplaints] = useState([]);
@@ -47,6 +49,20 @@ export default function PublicDashboard() {
 
   useEffect(() => {
     fetchComplaints();
+
+    const handleNewComplaint = (newComplaint) => {
+      setComplaints(prev => {
+        if (prev.find(c => c._id === newComplaint._id)) return prev;
+        return [newComplaint, ...prev];
+      });
+      setStats(s => ({ ...s, total: s.total + 1, pending: s.pending + 1 }));
+    };
+
+    socket.on('newComplaint', handleNewComplaint);
+
+    return () => {
+      socket.off('newComplaint', handleNewComplaint);
+    };
   }, []);
 
   useEffect(() => {
@@ -216,6 +232,44 @@ export default function PublicDashboard() {
     <div className="page-with-bg">
       <DashboardAnimatedBg />
       <div className="page-content container">
+        <div style={{
+          marginBottom: 'var(--spacing-xl)',
+          padding: 'var(--spacing-xl)',
+          background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+          borderRadius: 'var(--radius-xl)',
+          textAlign: 'center',
+          border: '1px solid var(--primary-light)',
+          animation: 'slideDown 0.5s ease-out'
+        }}>
+          <h2 style={{ color: 'var(--primary-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🌍</span> Community Impact Tracker
+          </h2>
+          <p style={{ color: 'var(--neutral-dark)', fontSize: 'var(--font-size-lg)', fontWeight: 600, marginBottom: '1.5rem' }}>
+            Citizens have reported {stats.total} issues and {stats.resolved > 0 ? `resolved ${stats.resolved}` : 'started working on them'} together!
+          </p>
+          
+          <div style={{
+            height: '16px',
+            background: 'var(--white)',
+            borderRadius: '999px',
+            overflow: 'hidden',
+            maxWidth: '600px',
+            margin: '0 auto',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
+            border: '1px solid var(--neutral-lighter)'
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${stats.total > 0 ? (stats.resolved / stats.total) * 100 : 0}%`,
+              background: 'var(--status-resolved)',
+              transition: 'width 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }} />
+          </div>
+          <p style={{ color: 'var(--neutral-medium)', marginTop: '0.75rem', fontWeight: 600 }}>
+            {stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0}% City Resolution Rate 🎉
+          </p>
+        </div>
+
         <div style={{ marginBottom: 'var(--spacing-xl)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--primary-main)' }}>
@@ -400,7 +454,10 @@ export default function PublicDashboard() {
                         key={`${complaint._id}-img-${index}`}
                         src={img}
                         alt={`Complaint evidence ${index + 1}`}
-                        onDoubleClick={() => setPreviewImage(img)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewImage(img);
+                        }}
                         style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-lighter)', cursor: 'zoom-in' }}
                       />
                     ))}
@@ -440,7 +497,9 @@ export default function PublicDashboard() {
                     Higher upvotes increase issue priority in this public feed.
                   </small>
                   {isCitizenLoggedIn ? (
-                    <button
+                    <motion.button
+                      whileHover={upvotedComplaintIds.has(complaint._id) ? {} : { scale: 1.05 }}
+                      whileTap={upvotedComplaintIds.has(complaint._id) ? {} : { scale: 0.85 }}
                       onClick={() => handleUpvote(complaint._id)}
                       disabled={upvotedComplaintIds.has(complaint._id) || upvoteInFlight[complaint._id]}
                       style={{
@@ -448,15 +507,56 @@ export default function PublicDashboard() {
                         borderRadius: 'var(--radius-md)',
                         border: 'none',
                         background: upvotedComplaintIds.has(complaint._id) ? 'var(--neutral-lighter)' : 'var(--primary-gradient)',
-                        color: upvotedComplaintIds.has(complaint._id) ? 'var(--neutral-medium)' : 'white',
+                        color: upvotedComplaintIds.has(complaint._id) ? 'var(--primary-main)' : 'white',
                         fontWeight: 600,
-                        cursor: upvotedComplaintIds.has(complaint._id) ? 'not-allowed' : 'pointer'
+                        cursor: upvotedComplaintIds.has(complaint._id) ? 'default' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        position: 'relative'
                       }}
                     >
-                      {upvotedComplaintIds.has(complaint._id)
-                        ? 'Upvoted'
-                        : (upvoteInFlight[complaint._id] ? 'Upvoting...' : 'Upvote')}
-                    </button>
+                      {upvotedComplaintIds.has(complaint._id) && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 1 }}
+                          animate={{ scale: [1, 2, 2.5], opacity: [1, 1, 0] }}
+                          transition={{ duration: 0.6, ease: "easeOut" }}
+                          style={{
+                            position: 'absolute',
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: 'var(--primary-main)',
+                            left: '50%',
+                            top: '50%',
+                            marginLeft: '-20px',
+                            marginTop: '-20px',
+                            zIndex: 0,
+                            pointerEvents: 'none'
+                          }}
+                        />
+                      )}
+                      
+                      {upvotedComplaintIds.has(complaint._id) ? (
+                        <motion.svg
+                          initial={{ scale: 0.5, rotate: -45 }}
+                          animate={{ scale: [1.5, 1], rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 10 }}
+                          width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ zIndex: 1 }}
+                        >
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </motion.svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ zIndex: 1 }}>
+                           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                      )}
+                      <span style={{ zIndex: 1 }}>
+                        {upvotedComplaintIds.has(complaint._id)
+                          ? 'Upvoted'
+                          : (upvoteInFlight[complaint._id] ? 'Upvoting...' : 'Upvote')}
+                      </span>
+                    </motion.button>
                   ) : (
                     <small style={{ color: 'var(--neutral-medium)' }}>Login as citizen to upvote</small>
                   )}
@@ -506,8 +606,8 @@ export default function PublicDashboard() {
 
       {previewImage && (
         <ImageLightbox
-          imageSrc={previewImage}
-          alt="Public complaint evidence preview"
+          images={complaints.find(c => c.images?.includes(previewImage))?.images || [previewImage]}
+          startIndex={Math.max(0, complaints.find(c => c.images?.includes(previewImage))?.images?.indexOf(previewImage) || 0)}
           onClose={() => setPreviewImage(null)}
         />
       )}

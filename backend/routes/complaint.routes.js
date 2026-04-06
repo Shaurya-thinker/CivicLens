@@ -6,7 +6,8 @@ const {
   getMyUpvotedComplaintIds,
   getAllComplaints,
   getComplaintsByUser,
-  updateComplaintStatus
+  updateComplaintStatus,
+  addComment
 } = require("../controllers/complaint.controller");
 const { verifyToken, isAdmin } = require("../middleware/auth.middleware");
 
@@ -60,5 +61,12 @@ router.get("/", verifyToken, isAdmin, getAllComplaints);
  * @access  Private (Admin)
  */
 router.patch("/:id/status", verifyToken, isAdmin, updateComplaintStatus);
+
+/**
+ * @route   POST /api/complaints/:id/comments
+ * @desc    Add a comment to a complaint
+ * @access  Private
+ */
+router.post("/:id/comments", verifyToken, addComment);
 
 module.exports = router;

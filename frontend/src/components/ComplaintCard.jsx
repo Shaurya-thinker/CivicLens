@@ -2,6 +2,7 @@ import { useState, memo, useCallback } from 'react';
 import StatusBadge from "./StatusBadge";
 import { useToast } from './Toast';
 import ImageLightbox from './ImageLightbox';
+import CommentThread from './CommentThread';
 
 const ComplaintCard = memo(({ complaint }) => {
   const [expanded, setExpanded] = useState(false);
@@ -151,19 +152,70 @@ const ComplaintCard = memo(({ complaint }) => {
                 background: 'var(--primary-main)',
                 color: 'white',
                 border: 'none',
-                padding: '0.25rem 0.5rem',
+                padding: '0.25rem 0.6rem',
                 borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
                 fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
-                transition: 'all 0.2s'
+                transition: 'background 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
               }}
-              onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
             >
-              Copy
+              Copy Link
             </button>
+            
+            <a 
+              href={`https://wa.me/?text=${encodeURIComponent(`Check out this local issue: ${complaint.title}\nID: ${complaint._id}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#25D366',
+                color: 'white',
+                textDecoration: 'none',
+                padding: '0.25rem 0.6rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              WhatsApp
+            </a>
+            
+            <a 
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this local issue on CivicLens: ${complaint.title}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#1DA1F2',
+                color: 'white',
+                textDecoration: 'none',
+                padding: '0.25rem 0.6rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              Twitter
+            </a>
           </div>
+
+          <CommentThread 
+            complaintId={complaint._id} 
+            initialComments={complaint.comments || []} 
+            onCommentAdded={(id, comment) => {
+              // Update local state if needed (or let parent refetch/update)
+            }}
+          />
         </div>
       )}
 
@@ -184,8 +236,8 @@ const ComplaintCard = memo(({ complaint }) => {
 
       {previewImage && (
         <ImageLightbox
-          imageSrc={previewImage}
-          alt="Complaint evidence preview"
+          images={complaint.images}
+          startIndex={Math.max(0, complaint.images.indexOf(previewImage))}
           onClose={() => setPreviewImage(null)}
         />
       )}

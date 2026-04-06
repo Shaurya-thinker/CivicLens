@@ -96,8 +96,10 @@ const getPublicComplaints = async (req, res) => {
       category: 1,
       status: 1,
       upvotes: 1,
+      comments: 1,
       createdAt: 1,
     })
+      .populate('comments.user', 'name')
       .sort({ upvotes: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -148,6 +150,10 @@ const createComplaint = async (req, res) => {
       category,
       createdBy: req.user.id,
     });
+
+    if (req.io) {
+      req.io.emit('newComplaint', complaint);
+    }
 
     res.status(201).json({
       success: true,
@@ -252,6 +258,7 @@ const getAllComplaints = async (req, res) => {
     
     const complaints = await Complaint.find()
       .populate("createdBy", "name email")
+      .populate('comments.user', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -378,6 +385,13 @@ const updateComplaintStatus = async (req, res) => {
     }
     
     await complaint.save();
+    
+    // Populate createdBy so the frontend has details for the notification
+    await complaint.populate('createdBy', 'name email');
+
+    if (req.io) {
+      req.io.emit('statusUpdate', complaint);
+    }
 
     res.status(200).json({
       success: true,
@@ -393,6 +407,51 @@ const updateComplaintStatus = async (req, res) => {
   }
 };
 
+const addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ success: false, message: "Comment text is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid complaint ID" });
+    }
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: "Complaint not found" });
+    }
+
+    const newComment = {
+      user: req.user.id,
+      text: text.trim().slice(0, 1000)
+    };
+
+    complaint.comments.push(newComment);
+    await complaint.save();
+
+    await complaint.populate('comments.user', 'name');
+
+    const addedComment = complaint.comments[complaint.comments.length - 1];
+
+    if (req.io) {
+      req.io.emit('newComment', { complaintId: complaint._id, comment: addedComment });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Comment added",
+      comment: addedComment
+    });
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ success: false, message: "Failed to add comment" });
+  }
+};
+
 module.exports = {
   createComplaint,
   getPublicComplaints,
@@ -401,4 +460,5 @@ module.exports = {
   getAllComplaints,
   getComplaintsByUser,
   updateComplaintStatus,
+  addComment
 };

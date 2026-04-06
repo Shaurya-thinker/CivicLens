@@ -98,6 +98,26 @@ const complaintSchema = new mongoose.Schema(
       min: 0,
     },
 
+    comments: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        text: {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: 1000,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     upvotedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

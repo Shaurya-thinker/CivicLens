@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import Filters from '../components/Filters';
-import DonutChart from '../components/DonutChart';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useCountUp } from '../hooks/useCountUp';
 import { useToast } from '../components/Toast';
 import useRipple from '../hooks/useRipple';
@@ -165,10 +165,22 @@ export default function AdminDashboard() {
   };
 
   const chartData = [
-    { label: 'Pending', value: stats.pending, color: 'var(--status-pending)' },
-    { label: 'In Progress', value: stats.inProgress, color: 'var(--status-progress)' },
-    { label: 'Resolved', value: stats.resolved, color: 'var(--status-resolved)' }
-  ];
+    { name: 'Pending', value: stats.pending, color: 'var(--status-pending)' },
+    { name: 'In Progress', value: stats.inProgress, color: 'var(--status-progress)' },
+    { name: 'Resolved', value: stats.resolved, color: 'var(--status-resolved)' }
+  ].filter(d => d.value > 0);
+
+  const categoryData = useMemo(() => {
+    const counts = {};
+    filteredComplaints.forEach(c => {
+      counts[c.category] = (counts[c.category] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredComplaints]);
+
+  const CATEGORY_COLORS = ['#667eea', '#764ba2', '#ff0844', '#ffb199', '#f6d365', '#fda085'];
 
   if (loading) {
     return (
@@ -242,15 +254,74 @@ export default function AdminDashboard() {
 
       {stats.total > 0 && (
         <div style={{
-          background: 'var(--white)',
-          padding: 'var(--spacing-xl)',
-          borderRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--shadow-md)',
-          border: '1px solid var(--neutral-lighter)',
-          marginTop: 'var(--spacing-xl)'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: 'var(--spacing-xl)',
+          marginTop: 'var(--spacing-xl)',
+          marginBottom: 'var(--spacing-xl)',
         }}>
-          <h3 style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>Status Distribution</h3>
-          <DonutChart data={chartData} />
+          <div style={{
+            background: 'var(--white)',
+            padding: 'var(--spacing-xl)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--neutral-lighter)',
+          }}>
+            <h3 style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>Status Distribution</h3>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    animationBegin={200}
+                    animationDuration={800}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--white)',
+            padding: 'var(--spacing-xl)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--neutral-lighter)',
+          }}>
+            <h3 style={{ textAlign: 'center', marginBottom: 'var(--spacing-lg)' }}>Complaints by Category</h3>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--neutral-lighter)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--neutral-medium)', fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--neutral-medium)' }} />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(102, 126, 234, 0.05)' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} animationDuration={1000}>
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`bar-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
       )}
 
@@ -455,8 +526,8 @@ export default function AdminDashboard() {
 
       {previewImage && (
         <ImageLightbox
-          imageSrc={previewImage}
-          alt="Admin complaint photo preview"
+          images={complaints.find(c => c.images?.includes(previewImage))?.images || [previewImage]}
+          startIndex={Math.max(0, complaints.find(c => c.images?.includes(previewImage))?.images?.indexOf(previewImage) || 0)}
           onClose={() => setPreviewImage(null)}
         />
       )}

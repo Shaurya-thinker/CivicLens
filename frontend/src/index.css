@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
 /* ============================================
    DESIGN TOKENS & TIMING
    ============================================ */
@@ -23,13 +25,23 @@
   --status-resolved: #38a169;
   --status-resolved-bg: #f0fdf4;
   
-  /* Neutral Colors */
-  --neutral-dark: #1a202c;
-  --neutral-medium: #4a5568;
-  --neutral-light: #cbd5e0;
-  --neutral-lighter: #e2e8f0;
-  --neutral-bg: #f7fafc;
+  /* Neutral Colors (Light Mode) */
+  --neutral-dark: #0f172a;
+  --neutral-medium: #475569;
+  --neutral-light: #cbd5e1;
+  --neutral-lighter: #f1f5f9;
+  --neutral-bg: #f8fafc;
   --white: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(255, 255, 255, 0.5);
+  --navbar-bg: rgba(255, 255, 255, 0.95);
+  --glass-highlight: rgba(255, 255, 255, 0.4);
+  
+  /* Background gradients */
+  --bg-grad-1: rgba(102, 126, 234, 0.08);
+  --bg-grad-2: rgba(118, 75, 162, 0.08);
+  --bg-grad-3: rgba(56, 161, 105, 0.05);
+  --bg-grad-base: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
   
   /* Semantic Colors */
   --error: #e53e3e;
@@ -48,7 +60,8 @@
   --spacing-2xl: 3rem;
   
   /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -88,6 +101,42 @@
 }
 
 /* ============================================
+   DARK MODE
+   ============================================ */
+.dark {
+  /* Neutral Colors (Dark Mode) */
+  --neutral-dark: #f8fafc;
+  --neutral-medium: #cbd5e1;
+  --neutral-light: #334155;
+  --neutral-lighter: #1e293b;
+  --neutral-bg: #0f172a;
+  --white: #020617;
+  
+  /* Glass and UI elements */
+  --card-bg: rgba(15, 23, 42, 0.7);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --navbar-bg: rgba(2, 6, 23, 0.85);
+  --glass-highlight: rgba(255, 255, 255, 0.03);
+
+  /* Background gradients */
+  --bg-grad-1: rgba(102, 126, 234, 0.15);
+  --bg-grad-2: rgba(118, 75, 162, 0.15);
+  --bg-grad-3: rgba(56, 161, 105, 0.1);
+  --bg-grad-base: linear-gradient(135deg, #0b0f19 0%, #151a28 100%);
+  
+  /* Status Colors Background Tweaks */
+  --status-pending-bg: rgba(237, 137, 54, 0.15);
+  --status-progress-bg: rgba(49, 130, 206, 0.15);
+  --status-resolved-bg: rgba(56, 161, 105, 0.15);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================
    GLOBAL STYLES
    ============================================ */
 * {
@@ -103,10 +152,10 @@ html {
 body {
   font-family: var(--font-family);
   background: 
-    radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(56, 161, 105, 0.05) 0%, transparent 50%),
-    linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+    radial-gradient(circle at 20% 50%, var(--bg-grad-1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, var(--bg-grad-2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, var(--bg-grad-3) 0%, transparent 50%),
+    var(--bg-grad-base);
   color: var(--neutral-dark);
   min-height: 100vh;
   line-height: 1.6;
@@ -114,6 +163,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   position: relative;
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 #root {
@@ -147,6 +197,7 @@ body {
 }
 
 h1 {
+  font-family: var(--font-heading);
   font-size: var(--font-size-3xl);
   font-weight: 800;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
@@ -156,26 +207,29 @@ h1 {
   background-clip: text;
   margin: 0;
   margin-bottom: var(--spacing-lg);
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
   line-height: 1.2;
   animation: gradientShift 3s ease infinite;
 }
 
 h2 {
+  font-family: var(--font-heading);
   font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--neutral-dark);
   margin: 0;
   margin-bottom: var(--spacing-md);
-  letter-spacing: -0.25px;
+  letter-spacing: -0.5px;
   line-height: 1.3;
 }
 
 h3 {
+  font-family: var(--font-heading);
   font-size: var(--font-size-xl);
   font-weight: 600;
   color: var(--neutral-dark);
   margin: 0;
+  letter-spacing: -0.25px;
   line-height: 1.4;
 }
 
@@ -190,14 +244,15 @@ p {
    NAVBAR
    ============================================ */
 .navbar {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--navbar-bg);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   padding: 0;
   position: sticky;
   top: 0;
   z-index: 1000;
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+  border-bottom: 1px solid var(--card-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .nav-container {
@@ -210,6 +265,7 @@ p {
 }
 
 .nav-brand {
+  font-family: var(--font-heading);
   font-size: var(--font-size-xl);
   font-weight: 800;
   color: var(--neutral-dark);
@@ -353,15 +409,16 @@ p {
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--card-bg);
   backdrop-filter: blur(20px);
   padding: var(--spacing-2xl);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 480px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--card-border);
   animation: slideUp var(--transition-slow);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .auth-card h2 {
@@ -569,14 +626,14 @@ p {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
   padding: var(--spacing-xl);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   text-align: center;
   transition: all var(--transition-base);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--card-border);
   border-top: 4px solid var(--primary-main);
   cursor: pointer;
   position: relative;
@@ -640,6 +697,7 @@ p {
 }
 
 .stat-number {
+  font-family: var(--font-heading);
   font-size: 3rem;
   font-weight: 800;
   color: var(--primary-main);
@@ -672,13 +730,13 @@ p {
 }
 
 .complaint-item {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
   padding: var(--spacing-xl);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--card-border);
   border-left: 4px solid var(--primary-main);
 }
 
@@ -779,13 +837,13 @@ p {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
   padding: var(--spacing-xl);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   margin: var(--spacing-xl) 0;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--card-border);
 }
 
 .filter-group {
