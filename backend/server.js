@@ -16,9 +16,34 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
+const parseOrigins = (value) =>
+  (value || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const ALLOWED_ORIGINS = Array.from(
+  new Set([
+    ...parseOrigins(process.env.FRONTEND_URL),
+    ...parseOrigins(process.env.CORS_ALLOWED_ORIGINS),
+  ])
+);
+
+const isOriginAllowed = (origin) => {
+  // Allow requests without Origin header (curl, Postman, server-to-server)
+  if (!origin) return true;
+  return ALLOWED_ORIGINS.includes(origin);
+};
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"), false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
   }
@@ -38,6 +63,14 @@ const DEMO_ADMIN = {
   email: "admin@example.com",
   password: "password123",
   name: "demo admin",
+};
+
+const shouldSeedDemoAdmin = () => {
+  // Never seed demo credentials in production unless explicitly enabled.
+  if ((process.env.NODE_ENV || "development").toLowerCase() === "production") {
+    return process.env.ENABLE_DEMO_ADMIN_SEED === "true";
+  }
+  return process.env.ENABLE_DEMO_ADMIN_SEED !== "false";
 };
 
 const seedDemoAdmin = async () => {
@@ -104,7 +137,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Secure CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(null, false);
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -127,10 +166,12 @@ app.get('/', (req, res) => {
 
 // API Documentation endpoint
 app.get('/api/docs', (req, res) => {
+  const baseUrl = process.env.API_BASE_URL || `${req.protocol}://${req.get('host')}`;
+
   res.json({
     title: 'CivicLens API Documentation',
     version: '1.0.0',
-    baseUrl: 'http://localhost:5000',
+    baseUrl,
     endpoints: {
       auth: {
         register: {
@@ -239,7 +280,13 @@ mongoose.connect(MONGO_URI, mongoOptions)
   .then(async () => {
     console.log("✅ MongoDB Connected");
 
-    await seedDemoAdmin();
+    if (shouldSeedDemoAdmin()) {
+      await seedDemoAdmin();
+    } else {
+      console.log("ℹ️ Demo admin seeding disabled for this environment");
+    }
+
+    console.log(`🔐 Allowed CORS origins: ${ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS.join(", ") : "(none configured)"}`);
 
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

@@ -5,7 +5,8 @@ const crypto = require("crypto");
 const { sendVerificationEmail } = require("../utils/email");
 
 const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
-const EMAIL_VERIFICATION_REQUIRED = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+const EMAIL_VERIFICATION_REQUIRED =
+  (process.env.REQUIRE_EMAIL_VERIFICATION || "true").toLowerCase() === "true";
 
 const createEmailVerificationToken = () => {
   const rawToken = crypto.randomBytes(32).toString("hex");
