@@ -186,7 +186,7 @@ const upvoteComplaint = async (req, res) => {
       });
     }
 
-    const complaint = await Complaint.findById(id);
+    const complaint = await Complaint.findById(id, { _id: 1, upvotes: 1, upvotedBy: 1 });
     if (!complaint) {
       return res.status(404).json({
         success: false,
@@ -195,7 +195,8 @@ const upvoteComplaint = async (req, res) => {
     }
 
     const userId = req.user.id;
-    const hasUpvoted = complaint.upvotedBy.some((voterId) => voterId.toString() === userId);
+    const voterIds = Array.isArray(complaint.upvotedBy) ? complaint.upvotedBy : [];
+    const hasUpvoted = voterIds.some((voterId) => voterId.toString() === userId);
     if (hasUpvoted) {
       return res.status(400).json({
         success: false,
@@ -203,15 +204,31 @@ const upvoteComplaint = async (req, res) => {
       });
     }
 
-    complaint.upvotedBy.push(userId);
-    complaint.upvotes = complaint.upvotedBy.length;
-    await complaint.save();
+    // Use an atomic update to avoid validating unrelated legacy fields.
+    const updatedComplaint = await Complaint.findOneAndUpdate(
+      { _id: id, upvotedBy: { $ne: userId } },
+      {
+        $addToSet: { upvotedBy: userId },
+        $inc: { upvotes: 1 },
+      },
+      {
+        new: true,
+        projection: { _id: 1, upvotes: 1 },
+      }
+    );
+
+    if (!updatedComplaint) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already upvoted this complaint",
+      });
+    }
 
     return res.status(200).json({
       success: true,
       message: "Complaint upvoted successfully",
-      complaintId: complaint._id,
-      upvotes: complaint.upvotes,
+      complaintId: updatedComplaint._id,
+      upvotes: updatedComplaint.upvotes,
     });
   } catch (error) {
     console.error("Upvote complaint error:", error);
