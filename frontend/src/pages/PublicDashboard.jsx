@@ -76,9 +76,20 @@ export default function PublicDashboard() {
       setComplaints(data);
 
       if (isCitizenLoggedIn) {
-        const upvoteResponse = await api.get('/complaints/upvotes/me');
-        const ids = upvoteResponse.data?.complaintIds || [];
-        setUpvotedComplaintIds(new Set(ids));
+        try {
+          const upvoteResponse = await api.get('/complaints/upvotes/me');
+          const ids = upvoteResponse.data?.complaintIds || [];
+          setUpvotedComplaintIds(new Set(ids));
+        } catch (upvoteError) {
+          if (upvoteError.response?.status !== 401) {
+            throw upvoteError;
+          }
+
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          localStorage.removeItem('user');
+          setUpvotedComplaintIds(new Set());
+        }
       }
       
       const total = data.length;
