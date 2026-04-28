@@ -60,9 +60,9 @@ io.on("connection", (socket) => {
 });
 
 const DEMO_ADMIN = {
-  email: "admin@example.com",
-  password: "password123",
-  name: "demo admin",
+  email: (process.env.SEED_ADMIN_EMAIL || "admin@example.com").toLowerCase().trim(),
+  password: process.env.SEED_ADMIN_PASSWORD || "password123",
+  name: process.env.SEED_ADMIN_NAME || "demo admin",
 };
 
 const shouldSeedDemoAdmin = () => {
